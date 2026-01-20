@@ -1,0 +1,4 @@
+// Your Apple Development Team ID
+// Copy this file to Development.xcconfig and set your Team ID
+// You can find your Team ID at https://developer.apple.com/account/#/membership
+APP_DEVELOPMENT_TEAM = YOUR_TEAM_ID_HERE
