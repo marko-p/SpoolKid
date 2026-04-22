@@ -4,6 +4,19 @@ SpoolKid is an iOS companion app for [Spoolman](https://github.com/Donkie/Spoolm
 
 The project was originally created for the Snapmaker U1 running [paxx's Extended Firmware](https://github.com/paxx12/SnapmakerU1-Extended-Firmware), which adds OpenSpool NFC tag support to the U1. SpoolKid has since grown into a general-purpose NFC filament tagging tool that works with multiple tag formats and printers.
 
+## Support the Project
+
+SpoolKid is free and open-source (MIT License), but keeping it running has real recurring costs:
+
+**Apple Developer Program** — $100/year, required to distribute on the App Store and TestFlight. Without it, NFC functionality cannot be used on a real device at all (CoreNFC requires an entitlement that only Apple can grant through a paid membership).
+
+If SpoolKid saves you time or makes your 3D printing workflow smoother, please consider helping cover these costs. Even a small contribution goes a long way toward keeping the app alive and actively developed.
+
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=github)](https://github.com/sponsors/marko-p)
+[![Ko-fi](https://img.shields.io/badge/Donate-Ko--fi-%23FF5E5B?logo=ko-fi)](https://ko-fi.com/spoolkid)
+
+Thank you — it genuinely makes a difference.
+
 ## Install
 
 **TestFlight (Recommended):**
@@ -73,19 +86,6 @@ All settings live in the iOS **Settings** app (Settings > SpoolKid), not inside 
 | `NFC/` | `NFCManager` -- CoreNFC read/write logic and format encoding. |
 | `Views/` | SwiftUI views for the entire UI. |
 | `Settings.bundle/` | iOS Settings app preferences. |
-
-## Support the Project
-
-SpoolKid is free and open-source (MIT License), but keeping it running has real recurring costs:
-
-**Apple Developer Program** — $100/year, required to distribute on the App Store and TestFlight. Without it, NFC functionality cannot be used on a real device at all (CoreNFC requires an entitlement that only Apple can grant through a paid membership).
-
-If SpoolKid saves you time or makes your 3D printing workflow smoother, please consider helping cover these costs. Even a small contribution goes a long way toward keeping the app alive and actively developed.
-
-[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=github)](https://github.com/sponsors/marko-p)
-[![Ko-fi](https://img.shields.io/badge/Donate-Ko--fi-%23FF5E5B?logo=ko-fi)](https://ko-fi.com/spoolkid)
-
-Thank you — it genuinely makes a difference.
 
 ## Acknowledgments
 
