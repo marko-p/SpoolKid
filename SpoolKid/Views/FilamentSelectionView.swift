@@ -10,19 +10,26 @@
 //  - "Import" logic: Tapping an external filament automatically creates the Vendor (if missing) and Filament in the local Spoolman instance.
 //
 
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
+//
+
 import SwiftUI
 
 struct FilamentSelectionView: View {
     @Binding var selectedFilamentID: Int?
     let baseUrl: String
     @Environment(\.dismiss) var dismiss
-    @ObservedObject var spoolManService: SpoolManService
+    @ObservedObject var spoolManService: SpoolmanService
     @StateObject private var spoolmanDBService = SpoolmanDBService.shared
     
     @State private var searchText = ""
     @State private var isImporting = false
+    @State private var importError: String? = nil
     
-    var filteredLocalFilaments: [SpoolManFilament] {
+    var filteredLocalFilaments: [SpoolmanFilament] {
         if searchText.isEmpty {
             return spoolManService.filaments
         } else {
@@ -61,6 +68,7 @@ struct FilamentSelectionView: View {
                                 VStack(alignment: .leading) {
                                     Text(filament.name ?? "Unknown")
                                         .font(.headline)
+                                        .lineLimit(1)
                                     if let vendor = filament.vendor {
                                         Text(vendor.name)
                                             .font(.subheadline)
@@ -70,27 +78,41 @@ struct FilamentSelectionView: View {
                                 Spacer()
                                 if let colorHex = filament.colorHex {
                                     Circle()
-                                        .fill(Color(hex: colorHex) ?? .gray)
-                                        .frame(width: 20, height: 20)
-                                        .overlay(Circle().stroke(Color.gray, lineWidth: 1))
+                                        .fill(Color(hex: colorHex) ?? .swatchFallback)
+                                        .frame(width: 24, height: 24)
+                                        .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
                                 }
                                 if selectedFilamentID == filament.id {
                                     Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(.accentColor)
                                 }
                             }
                         }
                         .foregroundColor(.primary)
                     }
                 }
+            } else if !searchText.isEmpty && !spoolManService.filaments.isEmpty {
+                Section("My Filaments") {
+                    ContentUnavailableView.search(text: searchText)
+                }
             }
             
             Section("SpoolmanDB Filaments") {
                 if spoolmanDBService.isLoading {
                     ProgressView()
-                } else if let error = spoolmanDBService.error {
-                    Text("Error: \(error)")
-                        .foregroundColor(.red)
+                } else if let error = spoolmanDBService.errorMessage {
+                    ContentUnavailableView {
+                        Label("Could Not Load SpoolmanDB", systemImage: "exclamationmark.triangle")
+                    } description: {
+                        Text(error)
+                    } actions: {
+                        Button("Retry") {
+                            Task { await spoolmanDBService.fetchFilaments() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                } else if filteredExternalFilaments.isEmpty && !searchText.isEmpty {
+                    ContentUnavailableView.search(text: searchText)
                 } else {
                     ForEach(filteredExternalFilaments) { filament in
                         Button {
@@ -100,16 +122,22 @@ struct FilamentSelectionView: View {
                                 VStack(alignment: .leading) {
                                     Text(filament.name)
                                         .font(.headline)
-                                    Text("\(filament.manufacturer) - \(filament.material)")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                    HStack(spacing: 4) {
+                                        Text(filament.manufacturer)
+                                        Text("•")
+                                        Text(filament.material)
+                                    }
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
                                 }
                                 Spacer()
                                 if let colorHex = filament.colorHex {
                                     Circle()
-                                        .fill(Color(hex: colorHex) ?? .gray)
-                                        .frame(width: 20, height: 20)
-                                        .overlay(Circle().stroke(Color.gray, lineWidth: 1))
+                                        .fill(Color(hex: colorHex) ?? .swatchFallback)
+                                        .frame(width: 24, height: 24)
+                                        .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
                                 }
                             }
                         }
@@ -121,6 +149,7 @@ struct FilamentSelectionView: View {
         .searchable(text: $searchText, prompt: "Search filaments...")
         .navigationTitle("Select Filament")
         .task {
+            await spoolManService.fetchFilaments(baseUrl: baseUrl)
             await spoolmanDBService.fetchFilaments()
             if spoolManService.vendors.isEmpty {
                 await spoolManService.fetchVendors(baseUrl: baseUrl)
@@ -135,6 +164,16 @@ struct FilamentSelectionView: View {
                         .background(Color(UIColor.systemBackground))
                         .cornerRadius(10)
                 }
+            }
+        }
+        .alert("Import Failed", isPresented: Binding<Bool>(
+            get: { importError != nil },
+            set: { if !$0 { importError = nil } }
+        )) {
+            Button("OK", role: .cancel) { importError = nil }
+        } message: {
+            if let msg = importError {
+                Text(msg)
             }
         }
     }
@@ -152,13 +191,14 @@ struct FilamentSelectionView: View {
                 if let newVendor = await spoolManService.addVendor(name: vendorName, baseUrl: baseUrl) {
                     vendorId = newVendor.id
                 } else {
-                    // Handle error
+                    importError = "Could not create vendor \"\(vendorName)\". Check your Spoolman connection."
                     isImporting = false
                     return
                 }
             }
             
             guard let finalVendorId = vendorId else {
+                importError = "Could not resolve vendor ID. Check your Spoolman connection."
                 isImporting = false
                 return
             }
@@ -177,6 +217,8 @@ struct FilamentSelectionView: View {
             ) {
                 selectedFilamentID = newFilament.id
                 dismiss()
+            } else {
+                importError = "Could not create filament \"\(dbFilament.name)\". Check your Spoolman connection."
             }
             
             isImporting = false

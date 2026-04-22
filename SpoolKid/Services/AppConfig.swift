@@ -12,11 +12,33 @@
 //  - Temperature presets for different materials
 //
 
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
+//
+
 import Foundation
 
-struct AppConfig {
+nonisolated struct AppConfig {
     static let spoolmanUrlKey = "spoolman_url"
-    static let defaultSpoolmanUrl = "http://[YOUR_SPOOLMAN_IP]:7912"
+    static let defaultSpoolmanUrl = ""
+    
+    // Authentication & Security
+    static let authTypeKey = "spoolman_auth_type"            // "none", "basic", "bearer"
+    static let trustAllCertsKey = "spoolman_trust_all_certs" // Bool
+    static let authUsernameKey = "spoolman_auth_username"    // String
+    static let authPasswordKey = "spoolman_auth_password"    // String
+    static let authTokenKey    = "spoolman_auth_token"       // String
+    
+    // NFC Tag Format
+    static let nfcTagFormatKey = "nfc_tag_format"            // TagFormat.rawValue
+    
+    // Onboarding
+    static let hasCompletedWelcomeKey = "has_completed_welcome" // Bool
+    
+    // Reset
+    static let resetAppDataKey = "reset_app_data"              // Bool
     
     static let materialPresets: [String: (extruder: Int, bed: Int)] = [
         "PLA": (210, 50),
@@ -60,6 +82,8 @@ struct AppConfig {
     
     static let brands = ["Prusament", "Polymaker", "eSun", "Sunlu", "Bambu Lab", "Hatchbox", "Overture", "Eryone", "Amolen", "MatterHackers", "Proto-pasta", "ColorFabb", "Generic"]
     
+    static let subtypes = ["Basic", "Rapid", "HF", "Silk", "Matte", "Glossy", "Translucent", "Transparent", "Glitter", "Glow", "Carbon Fiber", "Wood", "Flexible", "Semi Flexible", "Support", "PVA"]
+    
     struct Defaults {
         static let colorHex = "000000"
         static let density = 1.24
@@ -68,9 +92,62 @@ struct AppConfig {
         static let bedTemp = 60
         static let material = "PLA"
         static let brand = "Generic"
+        static let subtype = ""
         static let minNozzleTemp = 190
         static let maxNozzleTemp = 220
         static let minBedTemp = 50
         static let maxBedTemp = 70
+        
+        // Offsets applied when deriving min/max temps from a single Spoolman temp value
+        static let nozzleTempOffset = 10
+        static let bedTempOffset = 5
+    }
+    
+    // MARK: - Snapmaker U1 Compatibility
+    
+    /// Material types supported by the Snapmaker U1 printer (from printtag-web).
+    static let snapmakerU1Materials: [String] = [
+        "PLA", "PETG", "ABS", "ASA", "TPU", "PA", "PA12",
+        "PC", "PEEK", "PVA", "HIPS", "PCTG",
+        "PLA-CF", "PETG-CF", "PA-CF"
+    ]
+    
+    /// Maps Spoolman/SpoolKid material names to Snapmaker U1 compatible equivalents.
+    /// Only materials that need remapping are listed; direct matches are handled separately.
+    static let snapmakerU1MaterialMapping: [String: String] = [
+        // PLA variants
+        "PLA+": "PLA",
+        // ABS variants
+        "ABS+": "ABS",
+        "ABS-T": "ABS",
+        // Nylon -> PA
+        "Nylon": "PA",
+        // Flexible -> TPU
+        "Flexible (TPU)": "TPU",
+        "Flexible (TPE 32D)": "TPU",
+        "Flexible (TPE 88A)": "TPU",
+        "Semi flexible (FPE)": "TPU",
+        // PC variants
+        "Polycarbonate (PC)": "PC",
+        "PC/ABS": "PC",
+        "PC/PBT": "PC",
+        // Carbon fiber (generic) -> PLA-CF as most common CF filament
+        "Carbon Fiber": "PLA-CF",
+    ]
+    
+    /// Attempts to map a material type to a Snapmaker U1 compatible type.
+    /// Returns the original if already compatible, mapped value if a mapping exists,
+    /// or nil if no mapping is possible (user must choose manually).
+    static func resolveSnapmakerU1Material(_ material: String) -> String? {
+        // Case-insensitive check against known U1 materials
+        if snapmakerU1Materials.contains(where: { $0.caseInsensitiveCompare(material) == .orderedSame }) {
+            // Return the canonical casing from the U1 list
+            return snapmakerU1Materials.first(where: { $0.caseInsensitiveCompare(material) == .orderedSame })
+        }
+        // Check mapping table (case-insensitive keys)
+        if let mapped = snapmakerU1MaterialMapping.first(where: { $0.key.caseInsensitiveCompare(material) == .orderedSame })?.value {
+            return mapped
+        }
+        return nil
     }
 }

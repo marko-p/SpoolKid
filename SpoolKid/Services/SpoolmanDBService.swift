@@ -10,6 +10,12 @@
 //  - Providing this data to the `FilamentSelectionView` for importing.
 //
 
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
+//
+
 import Foundation
 import Combine
 
@@ -51,7 +57,7 @@ class SpoolmanDBService: ObservableObject {
     
     @Published var filaments: [SpoolmanDBFilament] = []
     @Published var isLoading = false
-    @Published var error: String?
+    @Published var errorMessage: String?
     
     private let url = URL(string: "https://donkie.github.io/SpoolmanDB/filaments.json")!
     
@@ -59,14 +65,14 @@ class SpoolmanDBService: ObservableObject {
         guard filaments.isEmpty else { return }
         
         isLoading = true
-        error = nil
+        errorMessage = nil
         
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
             let decoded = try JSONDecoder().decode([SpoolmanDBFilament].self, from: data)
             self.filaments = decoded
         } catch {
-            self.error = "Failed to fetch SpoolmanDB filaments: \(error.localizedDescription)"
+            self.errorMessage = "Failed to fetch SpoolmanDB filaments: \(error.localizedDescription)"
             print("Error fetching SpoolmanDB: \(error)")
         }
         

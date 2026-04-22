@@ -1,7 +1,22 @@
+//
+//  RecentTagManager.swift
+//  SpoolKid
+//
+//  Purpose: Manages a list of recently written NFC tags for quick re-use.
+//  Persists recent tags in UserDefaults, limited by the "recent_tags_limit" setting.
+//
+
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
+//
+
 import Foundation
 import Combine
+import SwiftUI
 
-struct RecentTag: Codable, Identifiable {
+struct RecentTag: Codable, Identifiable, Sendable {
     var id: UUID = UUID()
     let data: FilamentTagData
     let lastUsed: Date
@@ -14,6 +29,11 @@ class RecentTagManager: ObservableObject {
     
     init() {
         loadTags()
+    }
+    
+    private var limit: Int {
+        let val = UserDefaults.standard.integer(forKey: "recent_tags_limit")
+        return val > 0 ? val : 20
     }
     
     func addTag(_ data: FilamentTagData) {
@@ -29,9 +49,9 @@ class RecentTagManager: ObservableObject {
         let newTag = RecentTag(data: data, lastUsed: Date())
         recentTags.insert(newTag, at: 0)
         
-        // Keep only last 20
-        if recentTags.count > 20 {
-            recentTags = Array(recentTags.prefix(20))
+        // Keep only up to the configured limit
+        if recentTags.count > limit {
+            recentTags = Array(recentTags.prefix(limit))
         }
         
         saveTags()
@@ -50,6 +70,11 @@ class RecentTagManager: ObservableObject {
         }
     }
     
+    func removeTag(at offsets: IndexSet) {
+        recentTags.remove(atOffsets: offsets)
+        saveTags()
+    }
+
     func refresh() {
         loadTags()
     }

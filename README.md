@@ -1,58 +1,94 @@
 # SpoolKid
 
-> **Alpha notice:** NFC read/write is experimental and requires CoreNFC entitlements from Apple. This project is in early ALPHA and currently awaiting Apple Developer Program approval; until entitlements are granted NFC capabilities are limited. You can still create and export tag payloads in the app and write them using a general NFC writer app as a workaround.
+SpoolKid is an iOS companion app for [Spoolman](https://github.com/Donkie/Spoolman), a self-hosted filament manager for 3D printers. It lets you manage your filament inventory, write filament data to NFC tags, and keep your physical spools in sync with your Spoolman database.
 
-SpoolKid is an iOS companion application for [Spoolman](https://github.com/Donkie/Spoolman), a self-hosted filament manager for 3D printers. SpoolKid allows you to easily manage your filament inventory and write filament data to NFC tags (NTAG213/215/216) for quick identification and usage tracking.
+The project was originally created for the Snapmaker U1 running [paxx's Extended Firmware](https://github.com/paxx12/SnapmakerU1-Extended-Firmware), which adds OpenSpool NFC tag support to the U1. SpoolKid has since grown into a general-purpose NFC filament tagging tool that works with multiple tag formats and printers.
 
-This project was created to make it easy to use the Snapmaker U1 enhanced with paxx's extended firmware (https://github.com/paxx12/SnapmakerU1-Extended-Firmware). That firmware adds support for OpenSpool NFC tags to the U1 3D printer; SpoolKid was developed to streamline creating and writing those tags and integrating them with a Spoolman instance.
+## Support the Project
+
+SpoolKid is free and open-source (MIT License), but keeping it running has real recurring costs:
+
+**Apple Developer Program** — $100/year, required to distribute on the App Store and TestFlight. Without it, NFC functionality cannot be used on a real device at all (CoreNFC requires an entitlement that only Apple can grant through a paid membership).
+
+If SpoolKid saves you time or makes your 3D printing workflow smoother, please consider helping cover these costs. Even a small contribution goes a long way toward keeping the app alive and actively developed.
+
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=github)](https://github.com/sponsors/marko-p)
+[![Ko-fi](https://img.shields.io/badge/Donate-Ko--fi-%23FF5E5B?logo=ko-fi)](https://ko-fi.com/spoolkid)
+
+Thank you — it genuinely makes a difference.
+
+## Install
+
+**TestFlight (Recommended):**
+
+Join the public beta: [TestFlight](https://testflight.apple.com/join/Y4BmejQk)
+
+**Build from Source:**
+
+1. Clone the repository.
+2. Copy `Development.xcconfig.template` to `Development.xcconfig` and set your Apple Developer Team ID.
+3. Open `SpoolKid.xcodeproj` in Xcode.
+4. Build and run on a physical device (NFC does not work in the Simulator).
+
+Requires Xcode 16+ and iOS 18.0+.
 
 ## Features
 
-*   **_[[ALPHA - Not Functional]]_ NFC Integration**: Read and write filament data to NFC tags.
-*   **Spoolman Sync**: Connects directly to your Spoolman instance to manage Spools, Filaments, and Vendors.
-*   **External Database**: Integrated with [SpoolmanDB](https://github.com/Donkie/SpoolmanDB) to easily import filament definitions from a global catalog.
-*   **_[[ALPHA - Not Functional]]_ Smart Tagging**: Write essential printing parameters (temps, material, brand) and link specific Spoolman IDs to physical tags.
-*   **_[[ALPHA - Not Functional]]_ Offline Capable**: Basic NFC reading/writing works without a Spoolman connection (though main purpose of this app is exactly Spoolman integration).
+### NFC Tag Formats
 
-## Getting Started
+SpoolKid reads and writes NFC tags (NTAG213/215/216) in four formats. Reading auto-detects the format; writing uses whichever format you select in Settings.
 
-### Prerequisites
+| Format | Notes |
+|---|---|
+| **OpenSpool** | JSON-based NDEF. Default format. |
+| **OpenPrintTag** | NDEF with `application/vnd.openprinttag` MIME type. |
+| **OpenTag3D** | NDEF with `application/opentag3d` MIME type. |
+| **Anycubic ACE** | Raw page writes (non-NDEF) for ACE Pro spool holder compatibility. |
 
-*   Mac with Xcode 15.0 or later.
-*   iPhone with NFC capability (iPhone 7 or newer).
-*   iOS 15.0 or later.
-*   (_Preferably_) A running instance of [Spoolman](https://github.com/Donkie/Spoolman).
-*   (_Optional_) Snapmaker U1 running paxx's Extended Firmware for OpenSpool NFC tag support if you intend to use tags with a U1 printer.
+### Spoolman Integration
 
-### Installation
+- Browse and manage **Spools**, **Filaments**, and **Vendors** directly from your Spoolman instance.
+- Import filament definitions from the global [SpoolmanDB](https://github.com/Donkie/SpoolmanDB) catalog, automatically creating the vendor and filament in your local Spoolman.
+- Create a spool and write its NFC tag in a single step with **Save and Write NFC Tag**.
+- Pull-to-refresh on all management lists.
 
-1.  Clone the repository
-2.  Open `SpoolKid.xcodeproj` in Xcode.
-3.  Change the Bundle Identifier and Team in the "Signing & Capabilities" tab to your own Apple Developer account.
-4.  Build and run on your physical device (NFC does not work in the Simulator).
+### Recent Tags
 
-## Configuration
+Recently written tags are saved for quick re-use. The number of remembered tags is configurable (5 / 10 / 20 / 50 / 100; default 20).
 
-1.  Open the app and navigate to the **Settings** tab.
-2.  Enter your Spoolman URL (e.g., `http://192.168.1.50:7912`).
-3.  Test the connection to ensure the app can communicate with your server.
-4.  (Optional) Toggle "Write Spool ID to Tag" if you want to link physical tags to specific database entries.
+### Printer Compatibility
 
-### Code Structure
+- **Snapmaker U1 mode**: Validates and auto-maps material types to the U1's supported list before writing. Only applies to OpenSpool format.
 
-*   **Models**: Data structures for NFC tags (`FilamentTagData`) and Spoolman API objects (`SpoolManSpool`, etc.).
-*   **Services**: Handles networking (`SpoolManService`), external DB fetching (`SpoolmanDBService`), and app configuration (`AppConfig`).
-*   **NFC**: Contains `NFCManager`, the core logic for CoreNFC interactions.
-*   **Views**: SwiftUI views for the user interface.
+### Configuration
 
-## License & Support
+All settings live in the iOS **Settings** app (Settings > SpoolKid), not inside the app itself:
 
-This project is open-source and designed for iOS devices. Providing native NFC functionality and the convenience of installing directly from the App Store requires maintenance of an Apple Developer Program membership ($100/year). If you find this app useful, please consider supporting the development to help cover these overhead costs.ss
+- **NFC Tag Options** -- write format, spool ID writing, recent tags limit.
+- **Printer Compatibility** -- Snapmaker U1 material validation.
+- **Spoolman Connection** -- server URL, certificate trust.
+- **Authentication** -- None, Basic Auth, or API Key / Bearer Token.
+- **Spoolman Management** -- remember last spool/filament data, confirm before deleting.
+- **Reset** -- wipe all app data on next launch.
 
-[Link to Donation/Sponsorship Page]
+### Other
+
+- Guided first-launch setup (format selection, Spoolman connection).
+- Offline NFC reading/writing without a Spoolman connection.
+- About page with app info and a link to jump straight to iOS Settings.
+
+## Code Structure
+
+| Directory | Contents |
+|---|---|
+| `Models/` | Data structures for NFC tags (`FilamentTagData`) and Spoolman API objects (`SpoolmanSpool`, etc.). |
+| `Services/` | Networking (`SpoolmanService`), external DB (`SpoolmanDBService`), recent tags (`RecentTagManager`), config (`AppConfig`). |
+| `NFC/` | `NFCManager` -- CoreNFC read/write logic and format encoding. |
+| `Views/` | SwiftUI views for the entire UI. |
+| `Settings.bundle/` | iOS Settings app preferences. |
 
 ## Acknowledgments
 
-*   [Donkie](https://github.com/Donkie) for creating Spoolman and SpoolmanDB.
-*   [paxx12](https://github.com/paxx12) for the Snapmaker U1 Extended Firmware, which adds OpenSpool NFC tag support to the U1 printer and inspired this project's workflow.
-*   [Lucio](https://github.com/unlucio/) for enabling the Snapmaker U1 to properly read tagged spools and apply them in the Monraker/Spoolman integration.
+- [Lucio](https://github.com/unlucio/) for testing, feedback, and pushing the Snapmaker U1 community toward Spoolman integration.
+- [Donkie](https://github.com/Donkie) for creating Spoolman and SpoolmanDB.
+- [paxx12](https://github.com/paxx12) for the Snapmaker U1 Extended Firmware, which inspired this project.

@@ -3,17 +3,36 @@
 //  SpoolKid
 //
 //  matches the OpenSpool NFC tag specification.
+//  Example:
+//  {
+//      "protocol": "openspool",
+//      "version": "1.0",
+//      "type": "ASA",
+//      "color_hex": "161616",
+//      "brand": "AzureFilm",
+//      "min_temp": "240",
+//      "max_temp": "260",
+//      "bed_min_temp": "90",
+//      "bed_max_temp": "120"
+//  }
+//
+
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
 //
 
 import Foundation
 
-struct OpenSpoolPayload: Codable {
+struct OpenSpoolPayload: Codable, Sendable {
     // Protocol metadata
     let `protocol`: String = "openspool"
     let version: String = "1.0"
     
     // Filament Data
     let type: String
+    let subtype: String?
     let brand: String
     let colorHex: String
     
@@ -31,6 +50,7 @@ struct OpenSpoolPayload: Codable {
         case `protocol`
         case version
         case type
+        case subtype
         case brand
         case colorHex = "color_hex"
         case minTemp = "min_temp"
@@ -44,6 +64,7 @@ struct OpenSpoolPayload: Codable {
     // Convert from internal model
     init(from data: FilamentTagData) {
         self.type = data.material
+        self.subtype = data.subtype
         self.brand = data.brand
         self.colorHex = data.colorHex
         self.minTemp = String(data.minNozzleTemp)
@@ -60,6 +81,7 @@ struct OpenSpoolPayload: Codable {
             id: UUID(), // Generate new local ID
             name: self.name,
             material: self.type,
+            subtype: self.subtype,
             brand: self.brand,
             colorHex: self.colorHex,
             minNozzleTemp: Int(self.minTemp) ?? 200, // Fallbacks
