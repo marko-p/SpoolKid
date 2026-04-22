@@ -1,13 +1,29 @@
+//
+//  ManageFilamentsView.swift
+//  SpoolKid
+//
+//  Purpose: List view for managing filaments in Spoolman (view, edit, delete).
+//
+
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
+//
+
 import SwiftUI
 
 struct ManageFilamentsView: View {
-    @StateObject private var spoolManService = SpoolManService()
+    @StateObject private var spoolManService = SpoolmanService()
     @AppStorage(AppConfig.spoolmanUrlKey) private var spoolmanUrl: String = AppConfig.defaultSpoolmanUrl
+    @AppStorage("confirm_before_delete") private var confirmBeforeDelete: Bool = true
     @State private var showingAddSheet = false
-    @State private var filamentToEdit: SpoolManFilament?
+    @State private var filamentToEdit: SpoolmanFilament?
     @State private var searchText = ""
+    @State private var filamentToDelete: SpoolmanFilament?
+    @State private var showDeleteConfirmation = false
 
-    var filteredFilaments: [SpoolManFilament] {
+    var filteredFilaments: [SpoolmanFilament] {
         if searchText.isEmpty {
             return spoolManService.filaments
         }
@@ -26,7 +42,26 @@ struct ManageFilamentsView: View {
                     Spacer()
                 }
             } else if let error = spoolManService.errorMessage {
-                Text(error).foregroundColor(.red)
+                ContentUnavailableView {
+                    Label("Could Not Load Filaments", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(error)
+                } actions: {
+                    Button("Retry") {
+                        Task { await spoolManService.fetchFilaments(baseUrl: spoolmanUrl) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            } else if filteredFilaments.isEmpty {
+                if searchText.isEmpty {
+                    ContentUnavailableView(
+                        "No Filaments",
+                        systemImage: "cylinder",
+                        description: Text("Add your first filament using the + button.")
+                    )
+                } else {
+                    ContentUnavailableView.search(text: searchText)
+                }
             } else {
                 ForEach(filteredFilaments) { filament in
                     Button(action: {
@@ -34,42 +69,44 @@ struct ManageFilamentsView: View {
                     }) {
                         HStack {
                             Circle()
-                                .fill(Color(hex: filament.colorHex ?? "000000") ?? .black)
+                                .fill(Color(hex: filament.colorHex ?? "000000") ?? .swatchFallback)
                                 .frame(width: 24, height: 24)
-                                .overlay(Circle().stroke(Color.gray, lineWidth: 1))
+                                .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
                             
                             VStack(alignment: .leading) {
                                 Text(filament.name ?? "Unknown")
                                     .font(.headline)
+                                    .lineLimit(1)
                                 HStack {
                                     Text(filament.vendor?.name ?? "Generic")
                                     Text("•")
                                     Text(filament.material ?? "PLA")
-                                    Text("•")
-                                    Text("ID: \(filament.id)")
                                 }
+                                .lineLimit(1)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             }
                         }
+                        .padding(.vertical, 4)
                     }
                 }
                 .onDelete { indexSet in
-                    for index in indexSet {
-                        if index < filteredFilaments.count {
-                            let filament = filteredFilaments[index]
-                            Task {
-                                await spoolManService.deleteFilament(id: filament.id, baseUrl: spoolmanUrl)
-                            }
+                    if let index = indexSet.first, index < filteredFilaments.count {
+                        let filament = filteredFilaments[index]
+                        if confirmBeforeDelete {
+                            filamentToDelete = filament
+                            showDeleteConfirmation = true
+                        } else {
+                            Task { await spoolManService.deleteFilament(id: filament.id, baseUrl: spoolmanUrl) }
                         }
                     }
                 }
             }
         }
-        .searchable(text: $searchText)
+        .searchable(text: $searchText, prompt: "Search filaments...")
         .navigationTitle("Manage Filaments")
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(action: { showingAddSheet = true }) {
                     Image(systemName: "plus")
                 }
@@ -83,6 +120,23 @@ struct ManageFilamentsView: View {
         }
         .refreshable {
             await spoolManService.fetchFilaments(baseUrl: spoolmanUrl)
+        }
+        .confirmationDialog(
+            "Delete Filament?",
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let filament = filamentToDelete {
+                    Task { await spoolManService.deleteFilament(id: filament.id, baseUrl: spoolmanUrl) }
+                }
+                filamentToDelete = nil
+            }
+            Button("Cancel", role: .cancel) { filamentToDelete = nil }
+        } message: {
+            if let filament = filamentToDelete {
+                Text("\(filament.name ?? "Unknown") will be permanently deleted from Spoolman.")
+            }
         }
         .onAppear {
             Task {

@@ -9,13 +9,19 @@
 //  - "Measured Weight" mode: Calculates remaining filament by subtracting empty spool weight from total measured weight.
 //
 
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
+//
+
 import SwiftUI
 
 struct SpoolFormView: View {
     @Environment(\.dismiss) var dismiss
-    @ObservedObject var service: SpoolManService
+    @ObservedObject var service: SpoolmanService
     let baseUrl: String
-    var spoolToEdit: SpoolManSpool?
+    var spoolToEdit: SpoolmanSpool?
     
     @AppStorage("remember_spool_data") private var rememberSpoolData = false
     @AppStorage("last_spool_price") private var lastSpoolPrice: String = ""
@@ -23,18 +29,26 @@ struct SpoolFormView: View {
     @AppStorage("last_spool_empty_weight") private var lastSpoolEmptyWeight: String = "0"
     @AppStorage("last_spool_filament_id") private var lastSpoolFilamentId: Int = -1
     @AppStorage("write_spool_id") private var configWriteSpoolId: Bool = true
+    @AppStorage("snapmaker_u1_compat") private var snapmakerU1Compat: Bool = false
+    @AppStorage(AppConfig.nfcTagFormatKey) private var nfcTagFormat: String = TagFormat.openSpool.rawValue
 
     @StateObject private var nfcManager = NFCManager()
+    @StateObject private var recentTagManager = RecentTagManager()
     @State private var writeToNfc = false
-    @State private var isWritingNfcAndWaiting = false
+    
+    // Snapmaker U1 compatibility state
+    @State private var showCompatPicker = false
+    @State private var incompatibleMaterial = ""
+    @State private var pendingTagData: FilamentTagData? = nil
 
     @State private var filamentId: Int?
     @State private var price: String = ""
     @State private var initialWeight: String = "1000"
     @State private var spoolWeight: String = ""
     @State private var isSaved: Bool = false
-    @State private var savedSpool: SpoolManSpool? = nil
+    @State private var savedSpool: SpoolmanSpool? = nil
     @State private var hasInitialized = false
+    @State private var validationError: String? = nil
     
     enum WeightMode: String, CaseIterable {
         case remaining = "Remaining"
@@ -46,9 +60,9 @@ struct SpoolFormView: View {
     @State private var weightInput: String = ""
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
-                Section(header: Text("Filament")) {
+                Section("Filament") {
                     NavigationLink {
                         FilamentSelectionView(selectedFilamentID: $filamentId, baseUrl: baseUrl, spoolManService: service)
                     } label: {
@@ -72,7 +86,7 @@ struct SpoolFormView: View {
                     }
                 }
                 
-                Section(header: Text("Properties")) {
+                Section("Properties") {
                     HStack {
                         Text("Price")
                         Spacer()
@@ -101,7 +115,7 @@ struct SpoolFormView: View {
                     }
                 }
                 
-                Section(header: Text("Weight Status")) {
+                Section("Weight Status") {
                     Picker("Input Mode", selection: $weightMode) {
                         ForEach(WeightMode.allCases, id: \.self) { mode in
                             Text(mode.rawValue).tag(mode)
@@ -138,15 +152,16 @@ struct SpoolFormView: View {
                         Button(action: {
                             saveSpool(writeAfter: true)
                         }) {
-                            HStack {
-                                Image(systemName: "wave.3.right")
-                                Text("Save and write NFC")
-                            }
-                            .frame(maxWidth: .infinity)
+                            Label("Save and Write NFC Tag", systemImage: "wave.3.right")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
                         }
+                        .writeTagButtonStyle()
                         .disabled(filamentId == nil || isSaved)
-                    } footer: {
-                        Text("Saves to SpoolMan and initiates NFC writing.")
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                     }
                 }
                 
@@ -155,25 +170,54 @@ struct SpoolFormView: View {
                         Button(action: {
                             writeTag(for: spool)
                         }) {
-                            HStack {
-                                Image(systemName: "wave.3.right")
-                                Text("Write NFC Tag Again")
-                            }
-                            .frame(maxWidth: .infinity)
+                            Label("Write to NFC Tag", systemImage: "wave.3.right")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .padding()
+                                .frame(maxWidth: .infinity)
                         }
+                        .writeTagButtonStyle()
                         .disabled(nfcManager.isScanning)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                     }
                 }
             }
+            .hideKeyboardOnTap()
             .navigationTitle(spoolToEdit == nil ? "Add Spool" : "Edit Spool")
-            .onChange(of: nfcManager.isScanning) { isScanning in
+            .onChange(of: nfcManager.isScanning) { _, _ in
                 // Removed auto-dismiss logic to allow retrying
             }
             .alert(isPresented: Binding<Bool>(
                 get: { !nfcManager.alertMessage.isEmpty },
                 set: { _ in nfcManager.alertMessage = "" }
             )) {
-                Alert(title: Text("NFC"), message: Text(nfcManager.alertMessage), dismissButton: .default(Text("OK")))
+                Alert(title: Text("NFC Error"), message: Text(nfcManager.alertMessage), dismissButton: .default(Text("OK")))
+            }
+            .alert("Invalid Input", isPresented: Binding<Bool>(
+                get: { validationError != nil },
+                set: { if !$0 { validationError = nil } }
+            )) {
+                Button("OK", role: .cancel) { validationError = nil }
+            } message: {
+                if let msg = validationError { Text(msg) }
+            }
+            .sheet(isPresented: $showCompatPicker) {
+                SnapmakerCompatPickerView(
+                    incompatibleMaterial: incompatibleMaterial,
+                    compatibleMaterials: AppConfig.snapmakerU1Materials,
+                    onSelect: { selectedMaterial in
+                        if var data = pendingTagData {
+                            data.material = selectedMaterial
+                            nfcManager.writeTag(data: data)
+                        }
+                        showCompatPicker = false
+                    },
+                    onCancel: {
+                        pendingTagData = nil
+                        showCompatPicker = false
+                    }
+                )
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -189,9 +233,7 @@ struct SpoolFormView: View {
             .onAppear {
                 if !hasInitialized {
                     hasInitialized = true
-                    if service.filaments.isEmpty {
-                        Task { await service.fetchFilaments(baseUrl: baseUrl) }
-                    }
+                    Task { await service.fetchFilaments(baseUrl: baseUrl) }
                     
                     if let spool = spoolToEdit {
                         filamentId = spool.filament.id
@@ -212,36 +254,42 @@ struct SpoolFormView: View {
                     }
                 }
             }
+            .onChange(of: nfcManager.lastWriteSucceeded) { _, succeeded in
+                if succeeded, var data = nfcManager.tagDataToWrite {
+                    // Restore name for Recent Tags display (may have been stripped for NFC format)
+                    if data.name == nil {
+                        data.name = savedSpool?.filament.name
+                    }
+                    recentTagManager.addTag(data)
+                }
+            }
         }
     }
     
-    private func writeTag(for spool: SpoolManSpool) {
-        // Prepare data
-        var minNozzle = 190
-        var maxNozzle = 220
-        if let t = spool.filament.settingsExtruderTemp {
-            minNozzle = t
-            maxNozzle = t + 10
+    private func writeTag(for spool: SpoolmanSpool) {
+        var data = FilamentTagData.from(spool: spool, writeSpoolId: configWriteSpoolId)
+        let currentFormat = TagFormat(rawValue: nfcTagFormat) ?? .openSpool
+        let isU1CompatActive = snapmakerU1Compat && currentFormat == .openSpool
+        
+        // Adjust name/subtype based on format and compat mode
+        if isU1CompatActive {
+            data.name = nil // U1 compat: keep subtype (derived from spool), omit name
+        } else if currentFormat == .openSpool {
+            data.subtype = nil // Non-U1 OpenSpool: keep name, omit subtype
+        }
+        // Other formats: keep both name and subtype as-is
+        
+        if isU1CompatActive {
+            if let resolved = AppConfig.resolveSnapmakerU1Material(data.material) {
+                data.material = resolved
+            } else {
+                incompatibleMaterial = data.material
+                pendingTagData = data
+                showCompatPicker = true
+                return
+            }
         }
         
-        var minBed = 50
-        var maxBed = 60
-        if let t = spool.filament.settingsBedTemp {
-            minBed = t
-            maxBed = t + 5
-        }
-        
-        let data = FilamentTagData(
-            name: spool.filament.name,
-            material: spool.filament.material ?? "PLA",
-            brand: spool.filament.vendor?.name ?? "Generic",
-            colorHex: spool.filament.colorHex ?? "000000",
-            minNozzleTemp: minNozzle,
-            maxNozzleTemp: maxNozzle,
-            minBedTemp: minBed,
-            maxBedTemp: maxBed,
-            spoolmanId: configWriteSpoolId ? spool.id : nil
-        )
         nfcManager.writeTag(data: data)
     }
     
@@ -257,6 +305,24 @@ struct SpoolFormView: View {
             let initW = parseDouble(initialWeight)
             let spoolW = parseDouble(spoolWeight)
             let wInput = parseDouble(weightInput)
+            
+            // Validate: reject negative values
+            if let p = p, p < 0 {
+                validationError = "Price cannot be negative."
+                return
+            }
+            if let initW = initW, initW < 0 {
+                validationError = "Initial weight cannot be negative."
+                return
+            }
+            if let spoolW = spoolW, spoolW < 0 {
+                validationError = "Empty spool weight cannot be negative."
+                return
+            }
+            if let wInput = wInput, wInput < 0 {
+                validationError = "\(weightMode.rawValue) weight cannot be negative."
+                return
+            }
             
             var remW: Double? = nil
             var usedW: Double? = nil
@@ -297,6 +363,7 @@ struct SpoolFormView: View {
                     price: p,
                     baseUrl: baseUrl
                 )
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
                 isSaved = true
                 dismiss()
             } else {
@@ -312,6 +379,7 @@ struct SpoolFormView: View {
                     )
                     
                     if let spool = newSpool {
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
                         isSaved = true
                         savedSpool = spool
                         writeToNfc = writeAfter

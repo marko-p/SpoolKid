@@ -1,3 +1,16 @@
+//
+//  FilamentTagDataExtensions.swift
+//  SpoolKid
+//
+//  Purpose: Extensions on FilamentTagData and Color for hex string conversion.
+//
+
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
+//
+
 import SwiftUI
 
 extension FilamentTagData {
@@ -5,6 +18,36 @@ extension FilamentTagData {
     @MainActor
     var color: Color {
         Color(hex: colorHex) ?? .gray
+    }
+    
+    /// Creates a `FilamentTagData` from a Spoolman spool, deriving min/max temps
+    /// from the single Spoolman temperature values using configured offsets.
+    static func from(spool: SpoolmanSpool, writeSpoolId: Bool = true) -> FilamentTagData {
+        var minNozzle = AppConfig.Defaults.minNozzleTemp
+        var maxNozzle = AppConfig.Defaults.maxNozzleTemp
+        if let t = spool.filament.settingsExtruderTemp {
+            minNozzle = t
+            maxNozzle = t + AppConfig.Defaults.nozzleTempOffset
+        }
+        
+        var minBed = AppConfig.Defaults.minBedTemp
+        var maxBed = AppConfig.Defaults.maxBedTemp
+        if let t = spool.filament.settingsBedTemp {
+            minBed = t
+            maxBed = t + AppConfig.Defaults.bedTempOffset
+        }
+        
+        return FilamentTagData(
+            name: spool.filament.name,
+            material: spool.filament.material ?? AppConfig.Defaults.material,
+            brand: spool.filament.vendor?.name ?? AppConfig.Defaults.brand,
+            colorHex: spool.filament.colorHex ?? AppConfig.Defaults.colorHex,
+            minNozzleTemp: minNozzle,
+            maxNozzleTemp: maxNozzle,
+            minBedTemp: minBed,
+            maxBedTemp: maxBed,
+            spoolmanId: writeSpoolId ? spool.id : nil
+        )
     }
 }
 

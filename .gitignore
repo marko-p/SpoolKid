@@ -33,3 +33,5 @@ timeline.xctimeline
 playground.xcworkspace
 
 # End of Xcode.gitignore
+
+.opencode/

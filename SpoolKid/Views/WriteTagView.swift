@@ -9,20 +9,28 @@
 //  - Option to link a Spoolman ID (controlled by settings).
 //
 
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
+//
+
 import SwiftUI
 
 struct WriteTagView: View {
     @StateObject private var nfcManager = NFCManager()
-    @StateObject private var spoolManService = SpoolManService()
+    @StateObject private var spoolManService = SpoolmanService()
     @StateObject private var recentTagManager = RecentTagManager()
     
     @AppStorage(AppConfig.spoolmanUrlKey) private var spoolmanUrl: String = AppConfig.defaultSpoolmanUrl
     @AppStorage("write_spool_id") private var writeSpoolId: Bool = true
+    @AppStorage("snapmaker_u1_compat") private var snapmakerU1Compat: Bool = false
+    @AppStorage(AppConfig.nfcTagFormatKey) private var nfcTagFormat: String = TagFormat.openSpool.rawValue
     
     // Form Fields
     @State private var name: String = ""
     @State private var material: String = AppConfig.Defaults.material
-    @State private var showCopyToast: Bool = false
+    @State private var subtype: String = "Basic"
     @State private var brand: String = AppConfig.Defaults.brand
     @State private var color: Color = Color(hex: AppConfig.Defaults.colorHex) ?? .black
     @State private var colorHex: String = AppConfig.Defaults.colorHex
@@ -34,28 +42,48 @@ struct WriteTagView: View {
     
     @State private var selectedSpoolId: Int?
     
+    // Delight state
+    @State private var showSuccessBanner = false
+    @State private var successBannerScale: CGFloat = 0.85
+    @State private var colorSwatchScale: CGFloat = 1.0
+    
+    // Snapmaker U1 compatibility state
+    @State private var showCompatPicker = false
+    @State private var incompatibleMaterial = ""
+    @State private var pendingTagData: FilamentTagData? = nil
+    
     var initialData: FilamentTagData?
     
-    let materials = AppConfig.materials
     let brands = AppConfig.brands
+    let subtypes = AppConfig.subtypes
+    
+    /// Derived property: is Snapmaker U1 compat active for the current format?
+    private var isU1CompatActive: Bool {
+        snapmakerU1Compat && nfcTagFormat == TagFormat.openSpool.rawValue
+    }
+    
+    /// When Snapmaker U1 compat is enabled (and format is OpenSpool), show only U1-compatible materials.
+    private var availableMaterials: [String] {
+        isU1CompatActive ? AppConfig.snapmakerU1Materials : AppConfig.materials
+    }
     
     var body: some View {
         Form {
-            Section(header: Text("Filament Details")) {
+            Section("Filament Details") {
                 // Material Type
                 HStack {
                     Text("Material")
                         .frame(width: 80, alignment: .leading)
                     TextField("Type", text: $material)
                     Menu {
-                        ForEach(materials, id: \.self) { mat in
+                        ForEach(availableMaterials, id: \.self) { mat in
                             Button(mat) {
                                 material = mat
                             }
                         }
                     } label: {
-                        Image(systemName: "chevron.down.circle")
-                            .foregroundColor(.blue)
+                    Image(systemName: "chevron.down.circle")
+                            .foregroundColor(.accentColor)
                     }
                 }
                 
@@ -65,20 +93,28 @@ struct WriteTagView: View {
                         .frame(width: 80, alignment: .leading)
                     
                     TextField("Hex", text: $colorHex)
-                        .onChange(of: colorHex) { newValue in
+                        .onChange(of: colorHex) { _, newValue in
                             if let newColor = Color(hex: newValue) {
                                 color = newColor
+                                bounceColorSwatch()
                             }
                         }
-                        .autocapitalization(.allCharacters)
+                        .textInputAutocapitalization(.characters)
                         .disableAutocorrection(true)
+                    
+                    Circle()
+                        .fill(color)
+                        .frame(width: 28, height: 28)
+                        .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
+                        .scaleEffect(colorSwatchScale)
                     
                     ColorPicker("", selection: $color)
                         .labelsHidden()
-                        .onChange(of: color) { newColor in
+                        .onChange(of: color) { _, newColor in
                             if let hex = newColor.toHex() {
                                 colorHex = hex
                             }
+                            bounceColorSwatch()
                         }
                 }
                 
@@ -95,19 +131,21 @@ struct WriteTagView: View {
                         }
                     } label: {
                         Image(systemName: "chevron.down.circle")
-                            .foregroundColor(.blue)
+                            .foregroundColor(.accentColor)
                     }
                 }
                 
-                // Filament Name
-                HStack {
-                    Text("Name")
-                        .frame(width: 80, alignment: .leading)
-                    TextField("Filament Name", text: $name)
+                // Filament Name — hidden when U1 compat is active (replaced by Variant)
+                if !isU1CompatActive {
+                    HStack {
+                        Text("Name")
+                            .frame(width: 80, alignment: .leading)
+                        TextField("Filament Name", text: $name)
+                    }
                 }
             }
             
-            Section(header: Text("Printing Parameters")) {
+            Section("Printing Parameters") {
                 HStack {
                     Text("Min Nozzle")
                     Spacer()
@@ -154,9 +192,9 @@ struct WriteTagView: View {
             }
             
             if let id = spoolmanId {
-                Section(header: Text("Linked Data")) {
+                Section("Linked Data") {
                     HStack {
-                        Text("SpoolMan ID")
+                        Text("Spoolman ID")
                         Spacer()
                         Text("\(id)")
                             .foregroundColor(.secondary)
@@ -164,26 +202,68 @@ struct WriteTagView: View {
                 }
             }
 
-            Section {
-                Button(action: writeTag) {
-                    HStack {
-                        Image(systemName: "wave.3.right")
-                        Text("Write to NFC Tag")
-                    }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Button(action: writeTag) {
+                Label("Write to NFC Tag", systemImage: "badge.plus.radiowaves.right")
+                    .font(.headline)
+                    .padding()
                     .frame(maxWidth: .infinity)
+            }
+            .writeTagButtonStyle()
+            .disabled(nfcManager.isScanning)
+            .padding()
+        }
+        .overlay(alignment: .bottom) {
+            if showSuccessBanner {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title2)
+                        .foregroundColor(.statusSuccess)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Tag Written")
+                            .font(.headline)
+                        Text("\(brand) \(material) — \(colorHex)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Circle()
+                        .fill(color)
+                        .frame(width: 28, height: 28)
+                        .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
+                        .scaleEffect(colorSwatchScale)
                 }
-                .disabled(nfcManager.isScanning)
-
-                Button(action: copyPayload) {
-                    HStack {
-                        Image(systemName: "doc.on.doc")
-                        Text("Copy Payload")
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                        .shadow(color: Color(.label).opacity(0.12), radius: 12, x: 0, y: 4)
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 100)
+                .scaleEffect(successBannerScale)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .hideKeyboardOnTap()
+        .navigationTitle("Create Tag")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    var data = buildTagData()
+                    // Restore name for display if stripped by format logic
+                    if data.name == nil && !name.isEmpty {
+                        data.name = name
                     }
-                    .frame(maxWidth: .infinity)
+                    recentTagManager.addTag(data)
+                    triggerWriteSuccess()
+                } label: {
+                    Text("Add")
                 }
             }
         }
-        .navigationTitle("Create Tag")
         .onAppear {
             if let data = initialData {
                 populateFromData(data)
@@ -193,30 +273,47 @@ struct WriteTagView: View {
             get: { !nfcManager.alertMessage.isEmpty },
             set: { _ in nfcManager.alertMessage = "" }
         )) {
-            Alert(title: Text("NFC"), message: Text(nfcManager.alertMessage), dismissButton: .default(Text("OK")))
+            Alert(title: Text("NFC Error"), message: Text(nfcManager.alertMessage), dismissButton: .default(Text("OK")))
         }
-        .overlay(
-            VStack {
-                Spacer()
-                if showCopyToast {
-                    Text("Payload Copied!")
-                        .font(.body)
-                        .padding()
-                        .background(Color.black.opacity(0.8))
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                        .padding(.bottom, 50)
-                        .transition(.opacity)
+        .sheet(isPresented: $showCompatPicker) {
+            SnapmakerCompatPickerView(
+                incompatibleMaterial: incompatibleMaterial,
+                compatibleMaterials: AppConfig.snapmakerU1Materials,
+                onSelect: { selectedMaterial in
+                    if var data = pendingTagData {
+                        data.material = selectedMaterial
+                        nfcManager.writeTag(data: data)
+                    }
+                    showCompatPicker = false
+                },
+                onCancel: {
+                    pendingTagData = nil
+                    showCompatPicker = false
                 }
+            )
+        }
+        .onChange(of: nfcManager.lastWriteSucceeded) { _, succeeded in
+            if succeeded, var data = nfcManager.tagDataToWrite {
+                // Restore name for Recent Tags display (may have been stripped for NFC format)
+                if data.name == nil && !name.isEmpty {
+                    data.name = name
+                }
+                recentTagManager.addTag(data)
+                triggerWriteSuccess()
             }
-            .animation(.easeInOut, value: showCopyToast)
-            .allowsHitTesting(false)
-        )
+        }
     }
     
     private func populateFromData(_ data: FilamentTagData) {
         self.name = data.name ?? ""
         self.material = data.material
+        if let subtype = data.subtype, !subtype.isEmpty {
+            self.subtype = subtype
+        } else if let name = data.name {
+            self.subtype = deriveSubtype(from: name)
+        } else {
+            self.subtype = ""
+        }
         self.brand = data.brand
         self.color = data.color
         self.colorHex = data.colorHex
@@ -227,76 +324,135 @@ struct WriteTagView: View {
         self.spoolmanId = data.spoolmanId
     }
     
-    private func populateFromSpool(_ spool: SpoolManSpool) {
-        if let n = spool.filament.name {
-            self.name = n
+    private func deriveSubtype(from name: String) -> String {
+        let lowercaseName = name.lowercased()
+        
+        let subtypeMappings: [(keywords: [String], subtype: String)] = [
+            (["matte"], "Matte"),
+            (["silk"], "Silk"),
+            (["glossy", "gloss"], "Glossy"),
+            (["translucent", "translucentpetg"], "Translucent"),
+            (["transparent", "clear"], "Transparent"),
+            (["glitter"], "Glitter"),
+            (["glow"], "Glow"),
+            (["carbon", "cf", "cf15", "cf10"], "Carbon Fiber"),
+            (["wood"], "Wood"),
+            (["support", "pva"], "Support"),
+            (["basic"], "Basic"),
+            (["hf", "high speed", "hs", "hyperspeed"], "HF"),
+            (["rapid"], "Rapid"),
+            (["tpu", "flex", "flexible", "soft"], "Flexible"),
+            (["semi flexible", "semi-flexible", "fpe"], "Semi Flexible")
+        ]
+        
+        for mapping in subtypeMappings {
+            for keyword in mapping.keywords {
+                if lowercaseName.contains(keyword) {
+                    return mapping.subtype
+                }
+            }
         }
-        if let mat = spool.filament.material {
-            self.material = mat
+        
+        return "Basic"
+    }
+    
+    private func buildTagData() -> FilamentTagData {
+        let currentFormat = TagFormat(rawValue: nfcTagFormat) ?? .openSpool
+        
+        // Determine subtype and name based on format + settings
+        let subtypeToWrite: String?
+        let nameToWrite: String?
+        
+        switch currentFormat {
+        case .openSpool:
+            // U1 compat ON: write variant, omit name. U1 compat OFF: write name, omit variant.
+            subtypeToWrite = (isU1CompatActive && !subtype.isEmpty && subtype != "None") ? subtype : nil
+            nameToWrite = (!isU1CompatActive && !name.isEmpty) ? name : nil
+        case .openTag3D:
+            // OpenTag3D supports both material_mod (subtype) and color_name (name)
+            subtypeToWrite = (!subtype.isEmpty && subtype != "None") ? subtype : nil
+            nameToWrite = !name.isEmpty ? name : nil
+        case .openPrintTag:
+            // OpenPrintTag uses material_name (name), no subtype
+            subtypeToWrite = nil
+            nameToWrite = !name.isEmpty ? name : nil
+        case .anycubicACE:
+            // ACE uses SKU (name), no subtype
+            subtypeToWrite = nil
+            nameToWrite = !name.isEmpty ? name : nil
         }
-        if let vendor = spool.filament.vendor?.name {
-            self.brand = vendor
-        }
-        if let hex = spool.filament.colorHex {
-            self.color = Color(hex: hex) ?? .black
-            self.colorHex = hex
-        }
-        if let minTemp = spool.filament.settingsExtruderTemp {
-            self.minNozzleTemp = minTemp
-            self.maxNozzleTemp = minTemp + 10 // Default range if only one provided
-        }
-        if let bedTemp = spool.filament.settingsBedTemp {
-            self.minBedTemp = bedTemp
-            self.maxBedTemp = bedTemp + 5
-        }
-        self.spoolmanId = spool.id
+        
+        return FilamentTagData(
+            name: nameToWrite,
+            material: material,
+            subtype: subtypeToWrite,
+            brand: brand,
+            colorHex: colorHex,
+            minNozzleTemp: minNozzleTemp,
+            maxNozzleTemp: maxNozzleTemp,
+            minBedTemp: minBedTemp,
+            maxBedTemp: maxBedTemp,
+            spoolmanId: writeSpoolId ? spoolmanId : nil
+        )
     }
     
     private func writeTag() {
-        let data = FilamentTagData(
-            name: name,
-            material: material,
-            brand: brand,
-            colorHex: colorHex,
-            minNozzleTemp: minNozzleTemp,
-            maxNozzleTemp: maxNozzleTemp,
-            minBedTemp: minBedTemp,
-            maxBedTemp: maxBedTemp,
-            // Passing nil for an optional Codable property causes the key to be omitted from the JSON output
-            spoolmanId: writeSpoolId ? spoolmanId : nil
-        )
-        nfcManager.writeTag(data: data)
+        var data = buildTagData()
         
-        // Save to recent tags
-        recentTagManager.addTag(data)
+        // Validate data before attempting write
+        if let error = data.validate() {
+            nfcManager.alertMessage = error.localizedDescription
+            return
+        }
+        
+        // Snapmaker U1 compat only applies to OpenSpool format
+        if isU1CompatActive {
+            if let resolved = AppConfig.resolveSnapmakerU1Material(data.material) {
+                data.material = resolved
+            } else {
+                incompatibleMaterial = data.material
+                pendingTagData = data
+                showCompatPicker = true
+                return
+            }
+        }
+        
+        nfcManager.writeTag(data: data)
     }
     
-    private func copyPayload() {
-        let data = FilamentTagData(
-            name: name,
-            material: material,
-            brand: brand,
-            colorHex: colorHex,
-            minNozzleTemp: minNozzleTemp,
-            maxNozzleTemp: maxNozzleTemp,
-            minBedTemp: minBedTemp,
-            maxBedTemp: maxBedTemp,
-            spoolmanId: writeSpoolId ? spoolmanId : nil
-        )
+    private func triggerWriteSuccess() {
+        // Haptic: success notification
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
         
-        if let jsonData = TagFormatService.shared.encode(data: data),
-           let jsonString = String(data: jsonData, encoding: .utf8) {
-            UIPasteboard.general.string = jsonString
-            
-            withAnimation {
-                showCopyToast = true
+        // Animate banner in with spring
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+            showSuccessBanner = true
+            successBannerScale = 1.0
+        }
+        
+        // Spool color swatch pulse
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.5).delay(0.15)) {
+            colorSwatchScale = 1.25
+        }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.6).delay(0.35)) {
+            colorSwatchScale = 1.0
+        }
+        
+        // Auto-dismiss after 2.5s
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            withAnimation(.easeIn(duration: 0.25)) {
+                showSuccessBanner = false
+                successBannerScale = 0.85
             }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                withAnimation {
-                    showCopyToast = false
-                }
-            }
+        }
+    }
+    
+    private func bounceColorSwatch() {
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.45)) {
+            colorSwatchScale = 1.3
+        }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.6).delay(0.18)) {
+            colorSwatchScale = 1.0
         }
     }
 }

@@ -1,19 +1,25 @@
 //
-//  SpoolManSpool.swift
+//  SpoolmanSpool.swift
 //  SpoolKid
 //
 //  Purpose: Data models reflecting the JSON structure returned by the Spoolman API.
 //  Contains:
-//  - `SpoolManSpool`: Represents a physical spool instance.
-//  - `SpoolManFilament`: Represents a filament definition (type, color, vendor).
-//  - `SpoolManVendor`: Represents a manufacturer.
+//  - `SpoolmanSpool`: Represents a physical spool instance.
+//  - `SpoolmanFilament`: Represents a filament definition (type, color, vendor).
+//  - `SpoolmanVendor`: Represents a manufacturer.
+//
+
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
 //
 
 import Foundation
 
-struct SpoolManSpool: Codable, Identifiable {
+struct SpoolmanSpool: Codable, Identifiable, Sendable {
     let id: Int
-    let filament: SpoolManFilament
+    let filament: SpoolmanFilament
     let remainingWeight: Double?
     let initialWeight: Double?
     let spoolWeight: Double?
@@ -31,11 +37,11 @@ struct SpoolManSpool: Codable, Identifiable {
     }
 }
 
-struct SpoolManFilament: Codable, Identifiable {
+struct SpoolmanFilament: Codable, Identifiable, Sendable {
     let id: Int
     let name: String?
     let material: String?
-    let vendor: SpoolManVendor?
+    let vendor: SpoolmanVendor?
     let colorHex: String?
     let density: Double?
     let diameter: Double?
@@ -55,7 +61,7 @@ struct SpoolManFilament: Codable, Identifiable {
     }
 }
 
-struct SpoolManVendor: Codable, Identifiable {
+struct SpoolmanVendor: Codable, Identifiable, Sendable {
     let id: Int
     let name: String
 }

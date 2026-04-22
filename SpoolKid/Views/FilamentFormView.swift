@@ -1,10 +1,27 @@
+//
+//  FilamentFormView.swift
+//  SpoolKid
+//
+//  Purpose: Form for creating or editing a Filament in Spoolman.
+//  Features:
+//  - Material selection with auto-populated temperature presets.
+//  - Color picker with hex input.
+//  - Physical properties (density, diameter).
+//
+
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
+//
+
 import SwiftUI
 
 struct FilamentFormView: View {
     @Environment(\.dismiss) var dismiss
-    @ObservedObject var service: SpoolManService
+    @ObservedObject var service: SpoolmanService
     let baseUrl: String
-    var filamentToEdit: SpoolManFilament?
+    var filamentToEdit: SpoolmanFilament?
     
     @AppStorage("remember_filament_data") private var rememberFilamentData = false
     @AppStorage("last_filament_material") private var lastFilamentMaterial: String = ""
@@ -25,6 +42,7 @@ struct FilamentFormView: View {
     @State private var extruderTemp: Int = AppConfig.Defaults.extruderTemp
     @State private var bedTemp: Int = AppConfig.Defaults.bedTemp
     @State private var userModifiedTemps: Bool = false
+    @State private var isSaving: Bool = false
     
     var materials: [String] { AppConfig.materials }
     
@@ -49,9 +67,9 @@ struct FilamentFormView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
-                Section(header: Text("Basic Info")) {
+                Section("Basic Info") {
                     TextField("Name", text: $name)
                     
                     // Material Type with Menu
@@ -68,7 +86,7 @@ struct FilamentFormView: View {
                             }
                         } label: {
                             Image(systemName: "chevron.down.circle")
-                                .foregroundColor(.blue)
+                                .foregroundColor(.accentColor)
                         }
                     }
                     
@@ -80,23 +98,23 @@ struct FilamentFormView: View {
                     }
                 }
                 
-                Section(header: Text("Color")) {
+                Section("Color") {
                     HStack {
                         Text("Color")
                             .frame(width: 80, alignment: .leading)
                         
                         TextField("Hex", text: $colorHex)
-                            .onChange(of: colorHex) { newValue in
+                            .onChange(of: colorHex) { _, newValue in
                                 if let newColor = Color(hex: newValue) {
                                     color = newColor
                                 }
                             }
-                            .autocapitalization(.allCharacters)
+                            .textInputAutocapitalization(.characters)
                             .disableAutocorrection(true)
                         
                         ColorPicker("", selection: $color)
                             .labelsHidden()
-                            .onChange(of: color) { newColor in
+                            .onChange(of: color) { _, newColor in
                                 if let hex = newColor.toHex() {
                                     colorHex = hex
                                 }
@@ -104,7 +122,7 @@ struct FilamentFormView: View {
                     }
                 }
                 
-                Section(header: Text("Physical Properties")) {
+                Section("Physical Properties") {
                     HStack {
                         Text("Density (g/cm³)")
                         Spacer()
@@ -124,7 +142,7 @@ struct FilamentFormView: View {
                     }
                 }
                 
-                Section(header: Text("Temperatures")) {
+                Section("Temperatures") {
                     HStack {
                         Text("Extruder Temp")
                         Spacer()
@@ -148,6 +166,7 @@ struct FilamentFormView: View {
                     }
                 }
             }
+            .hideKeyboardOnTap()
             .navigationTitle(filamentToEdit == nil ? "Add Filament" : "Edit Filament")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -156,6 +175,8 @@ struct FilamentFormView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         Task {
+                            isSaving = true
+                            defer { isSaving = false }
                             if rememberFilamentData {
                                 lastFilamentMaterial = material
                                 lastFilamentVendorId = vendorId ?? -1
@@ -195,6 +216,7 @@ struct FilamentFormView: View {
                             dismiss()
                         }
                     }
+                    .disabled(isSaving)
                 }
             }
             .onAppear {

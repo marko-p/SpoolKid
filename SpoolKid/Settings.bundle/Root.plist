@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>StringsTable</key>
+	<string>Root</string>
+	<key>PreferenceSpecifiers</key>
+	<array>
+		<!-- NFC Tag Options -->
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>NFC Tag Options</string>
+			<key>FooterText</key>
+			<string>Choose the NFC tag format for writing. Reading auto-detects the format. Anycubic ACE uses raw page writes (non-NDEF) for compatibility with ACE Pro spool holders.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Title</key>
+			<string>Write Format</string>
+			<key>Key</key>
+			<string>nfc_tag_format</string>
+			<key>DefaultValue</key>
+			<string>openspool</string>
+			<key>Titles</key>
+			<array>
+				<string>OpenSpool</string>
+				<string>OpenPrintTag</string>
+				<string>OpenTag3D</string>
+				<string>Anycubic ACE</string>
+			</array>
+			<key>Values</key>
+			<array>
+				<string>openspool</string>
+				<string>openprinttag</string>
+				<string>opentag3d</string>
+				<string>anycubic_ace</string>
+			</array>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Write Spool ID to Tag</string>
+			<key>Key</key>
+			<string>write_spool_id</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Title</key>
+			<string>Recent Tags to Remember</string>
+			<key>Key</key>
+			<string>recent_tags_limit</string>
+			<key>DefaultValue</key>
+			<integer>20</integer>
+			<key>Titles</key>
+			<array>
+				<string>5</string>
+				<string>10</string>
+				<string>20</string>
+				<string>50</string>
+				<string>100</string>
+			</array>
+			<key>Values</key>
+			<array>
+				<integer>5</integer>
+				<integer>10</integer>
+				<integer>20</integer>
+				<integer>50</integer>
+				<integer>100</integer>
+			</array>
+		</dict>
+		<!-- Printer Compatibility -->
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Printer Compatibility</string>
+			<key>FooterText</key>
+			<string>When enabled, material types are validated against the Snapmaker U1's supported list before writing to NFC. Incompatible types are auto-mapped when possible. Only applies when Write Format is set to OpenSpool.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Snapmaker U1 Compatibility</string>
+			<key>Key</key>
+			<string>snapmaker_u1_compat</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+		<!-- Spoolman Connection -->
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Spoolman Connection</string>
+			<key>FooterText</key>
+			<string>Enter the URL of your Spoolman server. Default port is 7912. Both HTTP and HTTPS are supported.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSTextFieldSpecifier</string>
+			<key>Title</key>
+			<string>Server URL</string>
+			<key>Key</key>
+			<string>spoolman_url</string>
+			<key>DefaultValue</key>
+			<string></string>
+			<key>IsSecure</key>
+			<false/>
+			<key>KeyboardType</key>
+			<string>URL</string>
+			<key>AutocapitalizationType</key>
+			<string>None</string>
+			<key>AutocorrectionType</key>
+			<string>No</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Trust All Certificates</string>
+			<key>Key</key>
+			<string>spoolman_trust_all_certs</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+		<!-- Authentication -->
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Authentication</string>
+			<key>FooterText</key>
+			<string>Configure authentication if your Spoolman instance is behind a reverse proxy that requires it. Set Auth Type to "none", "basic", or "bearer".</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSMultiValueSpecifier</string>
+			<key>Title</key>
+			<string>Auth Type</string>
+			<key>Key</key>
+			<string>spoolman_auth_type</string>
+			<key>DefaultValue</key>
+			<string>none</string>
+			<key>Titles</key>
+			<array>
+				<string>None</string>
+				<string>Basic Auth</string>
+				<string>API Key / Bearer Token</string>
+			</array>
+			<key>Values</key>
+			<array>
+				<string>none</string>
+				<string>basic</string>
+				<string>bearer</string>
+			</array>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSTextFieldSpecifier</string>
+			<key>Title</key>
+			<string>Username</string>
+			<key>Key</key>
+			<string>spoolman_auth_username</string>
+			<key>DefaultValue</key>
+			<string></string>
+			<key>IsSecure</key>
+			<false/>
+			<key>AutocapitalizationType</key>
+			<string>None</string>
+			<key>AutocorrectionType</key>
+			<string>No</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSTextFieldSpecifier</string>
+			<key>Title</key>
+			<string>Password</string>
+			<key>Key</key>
+			<string>spoolman_auth_password</string>
+			<key>DefaultValue</key>
+			<string></string>
+			<key>IsSecure</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSTextFieldSpecifier</string>
+			<key>Title</key>
+			<string>API Key / Token</string>
+			<key>Key</key>
+			<string>spoolman_auth_token</string>
+			<key>DefaultValue</key>
+			<string></string>
+			<key>IsSecure</key>
+			<true/>
+		</dict>
+		<!-- Spoolman Management -->
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Spoolman Management</string>
+			<key>FooterText</key>
+			<string>Remembered values are prepopulated when adding batches of similar items.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Remember Last Spool Data</string>
+			<key>Key</key>
+			<string>remember_spool_data</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Remember Last Filament Data</string>
+			<key>Key</key>
+			<string>remember_filament_data</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Confirm Before Deleting</string>
+			<key>Key</key>
+			<string>confirm_before_delete</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<!-- Reset -->
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Reset</string>
+			<key>FooterText</key>
+			<string>Enable this toggle, then reopen SpoolKid to clear all app data including connection settings, remembered form data, recent tags, and tips. The app will return to its first-launch state. This toggle resets itself after the data is cleared.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Reset All Data on Next Launch</string>
+			<key>Key</key>
+			<string>reset_app_data</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+	</array>
+</dict>
+</plist>

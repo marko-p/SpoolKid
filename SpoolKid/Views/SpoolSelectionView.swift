@@ -1,11 +1,24 @@
+//
+//  SpoolSelectionView.swift
+//  SpoolKid
+//
+//  Purpose: Picker view for selecting a spool from Spoolman to create an NFC tag.
+//
+
+//
+// Copyright (c) 2026 Marko Praprotnik. All rights reserved.
+// Licensed under the MIT License.
+// See LICENSE in the project root for details.
+//
+
 import SwiftUI
 
 struct SpoolSelectionView: View {
-    @StateObject private var spoolManService = SpoolManService()
+    @StateObject private var spoolManService = SpoolmanService()
     @AppStorage(AppConfig.spoolmanUrlKey) private var spoolmanUrl: String = AppConfig.defaultSpoolmanUrl
     @State private var searchText = ""
     
-    var filteredSpools: [SpoolManSpool] {
+    var filteredSpools: [SpoolmanSpool] {
         if searchText.isEmpty {
             return spoolManService.spools
         } else {
@@ -33,33 +46,50 @@ struct SpoolSelectionView: View {
                     Spacer()
                 }
             } else if let error = spoolManService.errorMessage {
-                Section {
-                    Text(error).foregroundColor(.red)
+                ContentUnavailableView {
+                    Label("Could Not Load Spools", systemImage: "exclamationmark.triangle")
+                } description: {
+                    Text(error)
+                } actions: {
+                    Button("Retry") {
+                        fetchSpools()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            } else if filteredSpools.isEmpty {
+                if searchText.isEmpty {
+                    ContentUnavailableView(
+                        "No Spools",
+                        systemImage: "shippingbox",
+                        description: Text("Add spools in the Spoolman tab first.")
+                    )
+                } else {
+                    ContentUnavailableView.search(text: searchText)
                 }
             } else {
                 Section(header: Text("Spools")) {
                     ForEach(filteredSpools) { spool in
-                        NavigationLink(destination: WriteTagView(initialData: mapSpoolToData(spool))) {
+                        NavigationLink(destination: WriteTagView(initialData: FilamentTagData.from(spool: spool))) {
                             HStack {
                                 Circle()
-                                    .fill(Color(hex: spool.filament.colorHex ?? "000000") ?? .black)
+                                    .fill(Color(hex: spool.filament.colorHex ?? "000000") ?? .swatchFallback)
                                     .frame(width: 24, height: 24)
-                                    .overlay(Circle().stroke(Color.gray, lineWidth: 1))
+                                    .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
                                 
                                 VStack(alignment: .leading) {
-                                    Text(spool.filament.name ?? "Unknown Filament")
+                                    Text(spool.filament.name ?? "Unknown")
                                         .font(.headline)
+                                        .lineLimit(1)
                                     HStack {
                                         Text(spool.filament.vendor?.name ?? "Generic")
                                         Text("•")
                                         Text(spool.filament.material ?? "PLA")
-                                        Text("•")
-                                        Text("ID: \(spool.id)")
                                         if let remaining = spool.remainingWeight {
                                             Text("•")
                                             Text("\(Int(remaining))g")
                                         }
                                     }
+                                    .lineLimit(1)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 }
@@ -71,14 +101,12 @@ struct SpoolSelectionView: View {
             }
         }
         .navigationTitle("Select Spool")
-        .searchable(text: $searchText, prompt: "Search filaments...")
+        .searchable(text: $searchText, prompt: "Search spools...")
         .refreshable {
             await spoolManService.fetchSpools(baseUrl: spoolmanUrl)
         }
         .onAppear {
-            if spoolManService.spools.isEmpty {
-                fetchSpools()
-            }
+            fetchSpools()
         }
     }
     
@@ -86,33 +114,5 @@ struct SpoolSelectionView: View {
         Task {
             await spoolManService.fetchSpools(baseUrl: spoolmanUrl)
         }
-    }
-    
-    private func mapSpoolToData(_ spool: SpoolManSpool) -> FilamentTagData {
-        var minNozzle = 190
-        var maxNozzle = 220
-        if let t = spool.filament.settingsExtruderTemp {
-            minNozzle = t
-            maxNozzle = t + 10
-        }
-        
-        var minBed = 50
-        var maxBed = 60
-        if let t = spool.filament.settingsBedTemp {
-            minBed = t
-            maxBed = t + 5
-        }
-        
-        return FilamentTagData(
-            name: spool.filament.name,
-            material: spool.filament.material ?? "PLA",
-            brand: spool.filament.vendor?.name ?? "Generic",
-            colorHex: spool.filament.colorHex ?? "000000",
-            minNozzleTemp: minNozzle,
-            maxNozzleTemp: maxNozzle,
-            minBedTemp: minBed,
-            maxBedTemp: maxBed,
-            spoolmanId: spool.id
-        )
     }
 }
