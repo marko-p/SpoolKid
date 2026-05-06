@@ -39,6 +39,7 @@ struct WriteTagView: View {
     @State private var minBedTemp: Int = AppConfig.Defaults.minBedTemp
     @State private var maxBedTemp: Int = AppConfig.Defaults.maxBedTemp
     @State private var spoolmanId: Int? = nil
+    @State private var spoolmanIdInput: String = ""
     
     @State private var selectedSpoolId: Int?
     
@@ -191,14 +192,33 @@ struct WriteTagView: View {
                 }
             }
             
-            if let id = spoolmanId {
-                Section("Linked Data") {
-                    HStack {
-                        Text("Spoolman ID")
-                        Spacer()
-                        Text("\(id)")
-                            .foregroundColor(.secondary)
+            Section("Linked Data") {
+                HStack {
+                    Text("Spoolman ID")
+                        .frame(width: 100, alignment: .leading)
+                    TextField("Optional", text: $spoolmanIdInput)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .onChange(of: spoolmanIdInput) { _, newValue in
+                            updateSpoolmanId(from: newValue)
+                        }
+
+                    if !spoolmanIdInput.isEmpty {
+                        Button {
+                            spoolmanIdInput = ""
+                            spoolmanId = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
                     }
+                }
+
+                if !writeSpoolId {
+                    Text("'Write Spool ID to Tag' is disabled in Settings. This value will be ignored when writing.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -322,6 +342,15 @@ struct WriteTagView: View {
         self.minBedTemp = data.minBedTemp
         self.maxBedTemp = data.maxBedTemp
         self.spoolmanId = data.spoolmanId
+        self.spoolmanIdInput = data.spoolmanId.map(String.init) ?? ""
+    }
+
+    private func updateSpoolmanId(from rawValue: String) {
+        let digitsOnly = rawValue.filter { $0.isNumber }
+        if digitsOnly != rawValue {
+            spoolmanIdInput = digitsOnly
+        }
+        spoolmanId = Int(digitsOnly)
     }
     
     private func deriveSubtype(from name: String) -> String {

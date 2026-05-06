@@ -28,7 +28,9 @@ struct TagsTabView: View {
 
     @State private var showAbout = false
     @State private var navigateToWriteFromScan = false
+    @State private var navigateToScanHub = false
     @State private var scannedTagData: FilamentTagData? = nil
+    @State private var scanResult: ScanResult? = nil
     @State private var scanPulseScale: CGFloat = 1.0
     @State private var scanPulseOpacity: Double = 0.0
 
@@ -129,6 +131,11 @@ struct TagsTabView: View {
                     .popoverTip(AboutTip())
                 }
             }
+            .navigationDestination(isPresented: $navigateToScanHub) {
+                if let result = scanResult {
+                    ScanResultHubView(result: result)
+                }
+            }
             .navigationDestination(isPresented: $navigateToWriteFromScan) {
                 WriteTagView(initialData: scannedTagData)
             }
@@ -143,10 +150,20 @@ struct TagsTabView: View {
                     startScanPulse()
                 } else {
                     stopScanPulse()
-                    if let data = nfcManager.scannedData {
+                    if let result = nfcManager.scanResult {
+                        scanResult = result
+                        navigateToScanHub = true
+                    } else if let data = nfcManager.scannedData {
+                        // Legacy path (ACE raw, etc.) — keep working
                         scannedTagData = data
                         navigateToWriteFromScan = true
                     }
+                }
+            }
+            .onChange(of: navigateToScanHub) { _, isNavigating in
+                if !isNavigating {
+                    scanResult = nil
+                    nfcManager.scanResult = nil
                 }
             }
             .onChange(of: navigateToWriteFromScan) { _, isNavigating in

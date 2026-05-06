@@ -230,13 +230,14 @@ class SpoolmanService: ObservableObject {
     }
     
     // Spools
-    func addSpool(filamentId: Int, remainingWeight: Double?, initialWeight: Double?, spoolWeight: Double?, usedWeight: Double?, price: Double?, baseUrl: String) async -> SpoolmanSpool? {
+    func addSpool(filamentId: Int, remainingWeight: Double?, initialWeight: Double?, spoolWeight: Double?, usedWeight: Double?, price: Double?, lotNr: String? = nil, baseUrl: String) async -> SpoolmanSpool? {
         var body: [String: Any] = ["filament_id": filamentId]
         if let remainingWeight = remainingWeight { body["remaining_weight"] = remainingWeight }
         if let initialWeight = initialWeight { body["initial_weight"] = initialWeight }
         if let spoolWeight = spoolWeight { body["spool_weight"] = spoolWeight }
         if let usedWeight = usedWeight { body["used_weight"] = usedWeight }
         if let price = price { body["price"] = price }
+        if let lotNr = lotNr { body["lot_nr"] = lotNr }
         
         do {
             let newSpool: SpoolmanSpool = try await sendRequest(method: "POST", endpoint: "/api/v1/spool", baseUrl: baseUrl, body: body)
@@ -248,7 +249,7 @@ class SpoolmanService: ObservableObject {
         }
     }
     
-    func updateSpool(id: Int, filamentId: Int?, remainingWeight: Double?, initialWeight: Double?, spoolWeight: Double?, usedWeight: Double?, price: Double?, baseUrl: String) async {
+    func updateSpool(id: Int, filamentId: Int?, remainingWeight: Double?, initialWeight: Double?, spoolWeight: Double?, usedWeight: Double?, price: Double?, lotNr: String? = nil, baseUrl: String) async {
         var body: [String: Any] = [:]
         if let filamentId = filamentId { body["filament_id"] = filamentId }
         if let remainingWeight = remainingWeight { body["remaining_weight"] = remainingWeight }
@@ -256,6 +257,7 @@ class SpoolmanService: ObservableObject {
         if let spoolWeight = spoolWeight { body["spool_weight"] = spoolWeight }
         if let usedWeight = usedWeight { body["used_weight"] = usedWeight }
         if let price = price { body["price"] = price }
+        if let lotNr = lotNr { body["lot_nr"] = lotNr }
         
         do {
             let updatedSpool: SpoolmanSpool = try await sendRequest(method: "PATCH", endpoint: "/api/v1/spool/\(id)", baseUrl: baseUrl, body: body)
@@ -267,6 +269,33 @@ class SpoolmanService: ObservableObject {
         }
     }
     
+    /// Returns the first spool whose `lot_nr` contains the given card UID.
+    /// Searches the in-memory `spools` array; call `fetchSpools` first to ensure it is current.
+    func findSpool(byCardUID uid: String) -> SpoolmanSpool? {
+        let normalized = SpoolMappingService.normalizeUID(uid)
+        return spools.first { spool in
+            SpoolMappingService.cardUIDs(in: spool.lotNr).contains(normalized)
+        }
+    }
+
+    /// Persists a new `lot_nr` value for a spool via a PATCH request.
+    /// On success, updates the in-memory spool entry.
+    func setLotNr(spoolId: Int, lotNr: String, baseUrl: String) async {
+        do {
+            let updated: SpoolmanSpool = try await sendRequest(
+                method: "PATCH",
+                endpoint: "/api/v1/spool/\(spoolId)",
+                baseUrl: baseUrl,
+                body: ["lot_nr": lotNr]
+            )
+            if let index = spools.firstIndex(where: { $0.id == spoolId }) {
+                spools[index] = updated
+            }
+        } catch {
+            self.errorMessage = error.localizedDescription
+        }
+    }
+
     func deleteSpool(id: Int, baseUrl: String) async {
         do {
             try await sendDeleteRequest(endpoint: "/api/v1/spool/\(id)", baseUrl: baseUrl)

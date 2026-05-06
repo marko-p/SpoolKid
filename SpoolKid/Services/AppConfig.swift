@@ -39,6 +39,11 @@ nonisolated struct AppConfig {
     
     // Reset
     static let resetAppDataKey = "reset_app_data"              // Bool
+
+    // MARK: - Tag Matching & UID Persistence
+
+    /// Whether to persist a scanned card UID back to the matched spool's lot_nr in Spoolman.
+    static let spoolmanPersistCardUIDKey = "spoolman_persist_card_uid"      // Bool, default false
     
     static let materialPresets: [String: (extruder: Int, bed: Int)] = [
         "PLA": (210, 50),
