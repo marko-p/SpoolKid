@@ -25,6 +25,7 @@ struct SpoolFormView: View {
     var spoolToEdit: SpoolmanSpool?
     var initialFilamentId: Int? = nil
     var initialLotNr: String? = nil
+    var onSaveSpool: ((SpoolmanSpool) -> Void)? = nil
 
     @AppStorage("remember_spool_data") private var rememberSpoolData = false
     @AppStorage("last_spool_price") private var lastSpoolPrice: String = ""
@@ -179,7 +180,10 @@ struct SpoolFormView: View {
 
     @ViewBuilder
     private var actionSections: some View {
-        if spoolToEdit == nil {
+        if Self.shouldShowSaveAndWriteButton(
+            isEditingExistingSpool: spoolToEdit != nil,
+            isSaved: isSaved
+        ) {
             Section {
                 Button(action: { saveSpool(writeAfter: true) }) {
                     Label("Save and Write NFC Tag", systemImage: "wave.3.right")
@@ -189,7 +193,7 @@ struct SpoolFormView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .writeTagButtonStyle()
-                .disabled(filamentId == nil || isSaved)
+                .disabled(filamentId == nil)
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
             }
@@ -460,6 +464,7 @@ struct SpoolFormView: View {
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
                         isSaved = true
                         savedSpool = spool
+                        onSaveSpool?(spool)
                         writeToNfc = writeAfter
 
                         if writeAfter {
@@ -499,6 +504,13 @@ struct SpoolFormView: View {
         if !s2.isEmpty { uids.append(s2) }
         guard !uids.isEmpty else { return nil }
         return SpoolMappingService.lotNumber(for: uids)
+    }
+
+    static func shouldShowSaveAndWriteButton(
+        isEditingExistingSpool: Bool,
+        isSaved: Bool
+    ) -> Bool {
+        !isEditingExistingSpool && !isSaved
     }
 
     @ViewBuilder

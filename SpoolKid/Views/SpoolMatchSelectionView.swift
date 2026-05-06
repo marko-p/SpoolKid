@@ -2,7 +2,7 @@
 //  SpoolMatchSelectionView.swift
 //  SpoolKid
 //
-//  Purpose: Full candidate list for manual spool association.
+//  Purpose: Full candidate list for manual spool mapping.
 //  Shows ranked matches without confidence percentages. User can also search all spools.
 //
 
@@ -16,6 +16,8 @@ import SwiftUI
 
 struct SpoolMatchSelectionView: View {
     let matches: [FilamentMatchResult]
+    var allowAllSpools: Bool = false
+    var excludedSpoolIDs: Set<Int> = []
     var onSelect: (SpoolmanSpool) -> Void
 
     @StateObject private var spoolmanService = SpoolmanService()
@@ -39,17 +41,32 @@ struct SpoolMatchSelectionView: View {
     }
 
     private var searchAllResults: [SpoolmanSpool] {
-        guard !searchText.isEmpty, searchText.count >= 2 else { return [] }
+        guard allowAllSpools || (!searchText.isEmpty && searchText.count >= 2) else { return [] }
         let q = searchText.lowercased()
-        let candidateIDs = Set(matches.map { $0.spool.id })
+        let candidateIDs = Set(matches.map { $0.spool.id }).union(excludedSpoolIDs)
         return spoolmanService.spools.filter { spool in
             guard !candidateIDs.contains(spool.id) else { return false }
+
+            if allowAllSpools && searchText.isEmpty {
+                return true
+            }
+
             let filament = spool.filament
             return (filament.name ?? "").lowercased().contains(q)
                 || (filament.vendor?.name ?? "").lowercased().contains(q)
                 || (filament.material ?? "").lowercased().contains(q)
                 || String(spool.id).contains(q)
         }
+    }
+
+    static func spoolIDText(id: Int) -> String {
+        "Spool #\(id)"
+    }
+
+    static func mappedTagDisclosureText(lotNr: String?) -> String? {
+        let mappedUIDs = SpoolMappingService.cardUIDs(in: lotNr)
+        guard !mappedUIDs.isEmpty else { return nil }
+        return "Mapped tags (will be overwritten): \(mappedUIDs.joined(separator: ", "))"
     }
 
     // MARK: - Body
@@ -77,7 +94,7 @@ struct SpoolMatchSelectionView: View {
             }
 
             if !searchAllResults.isEmpty {
-                Section("All Spools (search results)") {
+                Section(allowAllSpools && searchText.isEmpty ? "All Spools" : "All Spools (search results)") {
                     ForEach(searchAllResults) { spool in
                         Button {
                             onSelect(spool)
@@ -112,6 +129,10 @@ struct SpoolMatchSelectionView: View {
                 Text(match.spool.filament.name ?? "Spool #\(match.spool.id)")
                     .font(.headline)
                     .lineLimit(1)
+                Text(Self.spoolIDText(id: match.spool.id))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 HStack(spacing: 4) {
                     if let vendor = match.spool.filament.vendor?.name {
                         Text(vendor)
@@ -130,6 +151,14 @@ struct SpoolMatchSelectionView: View {
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                 }
+
+                if let mappedTagDisclosure = Self.mappedTagDisclosureText(lotNr: match.spool.lotNr) {
+                    Text(mappedTagDisclosure)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
             }
 
             Spacer()
@@ -146,6 +175,10 @@ struct SpoolMatchSelectionView: View {
                 Text(spool.filament.name ?? "Spool #\(spool.id)")
                     .font(.headline)
                     .lineLimit(1)
+                Text(Self.spoolIDText(id: spool.id))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 HStack(spacing: 4) {
                     if let vendor = spool.filament.vendor?.name {
                         Text(vendor)
@@ -157,6 +190,14 @@ struct SpoolMatchSelectionView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+
+                if let mappedTagDisclosure = Self.mappedTagDisclosureText(lotNr: spool.lotNr) {
+                    Text(mappedTagDisclosure)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
             }
             Spacer()
         }

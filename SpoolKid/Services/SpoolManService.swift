@@ -280,7 +280,8 @@ class SpoolmanService: ObservableObject {
 
     /// Persists a new `lot_nr` value for a spool via a PATCH request.
     /// On success, updates the in-memory spool entry.
-    func setLotNr(spoolId: Int, lotNr: String, baseUrl: String) async {
+    @discardableResult
+    func setLotNr(spoolId: Int, lotNr: String, baseUrl: String) async -> Bool {
         do {
             let updated: SpoolmanSpool = try await sendRequest(
                 method: "PATCH",
@@ -291,8 +292,31 @@ class SpoolmanService: ObservableObject {
             if let index = spools.firstIndex(where: { $0.id == spoolId }) {
                 spools[index] = updated
             }
+            return true
         } catch {
             self.errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Clears `lot_nr` by setting it to null via a PATCH request.
+    /// On success, updates the in-memory spool entry.
+    @discardableResult
+    func clearLotNr(spoolId: Int, baseUrl: String) async -> Bool {
+        do {
+            let updated: SpoolmanSpool = try await sendRequest(
+                method: "PATCH",
+                endpoint: "/api/v1/spool/\(spoolId)",
+                baseUrl: baseUrl,
+                body: ["lot_nr": NSNull()]
+            )
+            if let index = spools.firstIndex(where: { $0.id == spoolId }) {
+                spools[index] = updated
+            }
+            return true
+        } catch {
+            self.errorMessage = error.localizedDescription
+            return false
         }
     }
 

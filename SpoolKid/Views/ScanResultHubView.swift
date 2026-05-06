@@ -58,11 +58,17 @@ struct ScanResultHubView: View {
     @State private var newSpoolInitialFilamentId: Int? = nil
     @State private var suggestedNewSpoolSource: NewSpoolSource? = nil
     @State private var newSpoolCandidates: [NewSpoolSource] = []
-    @State private var didJustAssociateCurrentTag = false
+    @State private var didJustMapCurrentTag = false
     @State private var secondTagTargetSpoolId: Int? = nil
     @State private var isPreparingCreateSpool = false
     @State private var createSpoolError: String? = nil
     @State private var persistenceError: String? = nil
+    @State private var moveBothMappedTagIDs = true
+    @State private var reusableMoveSourceSpool: SpoolmanSpool? = nil
+    @State private var reusableMoveUIDs: [String] = []
+    @State private var chooserAllowAllSpools = false
+    @State private var chooserExcludedSpoolIDs: Set<Int> = []
+    @State private var overrideInitialLotNrForNewSpool: String? = nil
 
     struct SlotReplacementContext {
         let spool: SpoolmanSpool
@@ -103,14 +109,19 @@ struct ScanResultHubView: View {
         case uidOnly
     }
 
+    enum MoveSourceUIDSelectionState: Equatable {
+        case hidden
+        case visible(defaultMoveBoth: Bool)
+    }
+
     static func uidMappingActionState(
         persistCardUID: Bool,
         tagMapped: Bool,
-        didJustAssociateCurrentTag: Bool,
+        didJustMapCurrentTag: Bool,
         isSecondTagScanning: Bool,
         mappedUIDCount: Int
     ) -> UIDMappingActionState {
-        if didJustAssociateCurrentTag {
+        if didJustMapCurrentTag {
             let canScanSecondTag = mappedUIDCount < 2
             return .scanSecondTag(enabled: persistCardUID && canScanSecondTag && !isSecondTagScanning)
         }
@@ -133,7 +144,7 @@ struct ScanResultHubView: View {
         return .enabled
     }
 
-    static func existingSpoolAssociationState(
+    static func existingSpoolMappingState(
         cardUID: String?,
         persistCardUID: Bool,
         spoolmanConfigured: Bool
@@ -161,6 +172,40 @@ struct ScanResultHubView: View {
         return .none
     }
 
+    static func moveSourceUIDSelectionState(sourceMappedUIDs: [String]) -> MoveSourceUIDSelectionState {
+        if sourceMappedUIDs.count >= SpoolMappingService.maxCardUIDs {
+            return .visible(defaultMoveBoth: true)
+        }
+        return .hidden
+    }
+
+    static func selectedUIDsForReusableMove(
+        scannedUID: String,
+        sourceMappedUIDs: [String],
+        moveBothWhenAvailable: Bool
+    ) -> [String] {
+        let normalizedScannedUID = SpoolMappingService.normalizeUID(scannedUID)
+        var seen = Set<String>()
+        let normalizedSourceUIDs = sourceMappedUIDs.compactMap { uid -> String? in
+            let normalized = SpoolMappingService.normalizeUID(uid)
+            guard !normalized.isEmpty, !seen.contains(normalized) else { return nil }
+            seen.insert(normalized)
+            return normalized
+        }
+
+        if moveBothWhenAvailable,
+           normalizedSourceUIDs.count >= SpoolMappingService.maxCardUIDs,
+           normalizedSourceUIDs.contains(normalizedScannedUID) {
+            return Array(normalizedSourceUIDs.prefix(SpoolMappingService.maxCardUIDs))
+        }
+
+        if !normalizedScannedUID.isEmpty {
+            return [normalizedScannedUID]
+        }
+
+        return []
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -175,11 +220,11 @@ struct ScanResultHubView: View {
                             .padding()
 
                     case .authoritativeSpool(let spool):
-                        associationActions(spool: spool)
+                        mappingActions(spool: spool)
                         secondaryActions(tagData: result.tagData, showCreateSpool: false, showUIDActionsForEncryptedTag: false)
 
                     case .cardUIDSpool(let spool):
-                        associationActions(spool: spool)
+                        mappingActions(spool: spool)
                         secondaryActions(tagData: result.tagData, showCreateSpool: false, showUIDActionsForEncryptedTag: false)
 
                     case .matchResults(let matches):
@@ -233,7 +278,18 @@ struct ScanResultHubView: View {
                     service: spoolmanService,
                     baseUrl: spoolmanUrl,
                     initialFilamentId: newSpoolInitialFilamentId,
-                    initialLotNr: suggestedInitialLotNrForNewSpool
+                    initialLotNr: suggestedInitialLotNrForNewSpool,
+                    onSaveSpool: { newSpool in
+                        let sourceSpool = reusableMoveSourceSpool
+                        let movedUIDs = reusableMoveUIDs
+                        Task {
+                            await handleSavedSpoolFromForm(
+                                newSpool,
+                                sourceSpool: sourceSpool,
+                                movedUIDs: movedUIDs
+                            )
+                        }
+                    }
                 )
             }
             .navigationDestination(isPresented: $navigateToMoreFilaments) {
@@ -248,8 +304,10 @@ struct ScanResultHubView: View {
             .navigationDestination(isPresented: $navigateToChooser) {
                 SpoolMatchSelectionView(
                     matches: matchResults,
+                    allowAllSpools: chooserAllowAllSpools,
+                    excludedSpoolIDs: chooserExcludedSpoolIDs,
                     onSelect: { spool in
-                        handleManualSelection(spool: spool)
+                        handleChooserSelection(spool: spool)
                         navigateToChooser = false
                     }
                 )
@@ -272,6 +330,17 @@ struct ScanResultHubView: View {
                 Task { await handleSecondTagScanCompletion() }
             }
         }
+        .onChange(of: navigateToCreateSpool) { _, isPresented in
+            if !isPresented, reusableMoveSourceSpool != nil {
+                clearReusableMoveContext()
+            }
+        }
+        .onChange(of: navigateToChooser) { _, isPresented in
+            if !isPresented {
+                chooserAllowAllSpools = false
+                chooserExcludedSpoolIDs = []
+            }
+        }
     }
 
     // MARK: - Resolution
@@ -281,7 +350,7 @@ struct ScanResultHubView: View {
         return []
     }
 
-    private var associatedSpool: SpoolmanSpool? {
+    private var mappedSpool: SpoolmanSpool? {
         switch hubState {
         case .authoritativeSpool(let spool), .cardUIDSpool(let spool):
             return spool
@@ -291,6 +360,10 @@ struct ScanResultHubView: View {
     }
 
     private var suggestedInitialLotNrForNewSpool: String? {
+        if let overrideInitialLotNrForNewSpool {
+            return overrideInitialLotNrForNewSpool
+        }
+
         guard let uid = result.cardUID else { return nil }
         return SpoolMappingService.lotNumber(for: [uid])
     }
@@ -359,7 +432,7 @@ struct ScanResultHubView: View {
         switch SpoolMappingService.updatedLotNumber(existingLotNumber: spool.lotNr, adding: uid) {
         case .updated(let newLotNr):
             await spoolmanService.setLotNr(spoolId: spool.id, lotNr: newLotNr, baseUrl: spoolmanUrl)
-            didJustAssociateCurrentTag = true
+            didJustMapCurrentTag = true
         case .needsSlotReplacement(let existingUIDs, let newUID):
             slotReplacementContext = SlotReplacementContext(spool: spool, existingUIDs: existingUIDs, newUID: newUID)
             showSlotReplacementAlert = true
@@ -371,17 +444,133 @@ struct ScanResultHubView: View {
         Task {
             await spoolmanService.setLotNr(spoolId: ctx.spool.id, lotNr: newLotNr, baseUrl: spoolmanUrl)
             await MainActor.run {
-                didJustAssociateCurrentTag = true
+                didJustMapCurrentTag = true
             }
         }
     }
 
     private func handleManualSelection(spool: SpoolmanSpool) {
         hubState = .authoritativeSpool(spool)
-        didJustAssociateCurrentTag = false
+        didJustMapCurrentTag = false
         Task {
             await persistUIDIfNeeded(to: spool)
         }
+    }
+
+    private func handleChooserSelection(spool: SpoolmanSpool) {
+        if let sourceSpool = reusableMoveSourceSpool, !reusableMoveUIDs.isEmpty {
+            let movedUIDs = reusableMoveUIDs
+            Task {
+                _ = await moveReusableUIDs(
+                    to: spool,
+                    sourceSpool: sourceSpool,
+                    movedUIDs: movedUIDs
+                )
+            }
+            return
+        }
+
+        handleManualSelection(spool: spool)
+    }
+
+    private func handleSavedSpoolFromForm(
+        _ newSpool: SpoolmanSpool,
+        sourceSpool: SpoolmanSpool?,
+        movedUIDs: [String]
+    ) async {
+        guard let sourceSpool, !movedUIDs.isEmpty else { return }
+
+        _ = await moveReusableUIDs(
+            to: newSpool,
+            sourceSpool: sourceSpool,
+            movedUIDs: movedUIDs
+        )
+    }
+
+    private func clearReusableMoveContext() {
+        reusableMoveSourceSpool = nil
+        reusableMoveUIDs = []
+        chooserAllowAllSpools = false
+        chooserExcludedSpoolIDs = []
+        overrideInitialLotNrForNewSpool = nil
+        moveBothMappedTagIDs = true
+    }
+
+    @discardableResult
+    private func moveReusableUIDs(
+        to destinationSpool: SpoolmanSpool,
+        sourceSpool: SpoolmanSpool,
+        movedUIDs: [String]
+    ) async -> Bool {
+        guard persistCardUID else {
+            persistenceError = "Enable \"Save Tag ID to Spoolman Lot nr.\" in Settings to move tag mappings."
+            return false
+        }
+
+        guard !spoolmanUrl.isEmpty else {
+            persistenceError = "Connect to a Spoolman server in Settings to move tag mappings."
+            return false
+        }
+
+        guard destinationSpool.id != sourceSpool.id else {
+            persistenceError = "Please choose a different destination spool."
+            return false
+        }
+
+        guard let destinationLotNr = SpoolMappingService.replacingAllUIDs(
+            in: destinationSpool.lotNr,
+            with: movedUIDs
+        ) else {
+            persistenceError = "Could not determine destination tag mapping values."
+            return false
+        }
+
+        let destinationUpdated = await spoolmanService.setLotNr(
+            spoolId: destinationSpool.id,
+            lotNr: destinationLotNr,
+            baseUrl: spoolmanUrl
+        )
+
+        guard destinationUpdated else {
+            persistenceError = "Failed to update destination spool tag mappings."
+            return false
+        }
+
+        let sourceLotNrAfterRemoval = SpoolMappingService.lotNumber(
+            removing: movedUIDs,
+            from: sourceSpool.lotNr
+        )
+
+        let sourceUpdated: Bool
+        if let sourceLotNrAfterRemoval {
+            sourceUpdated = await spoolmanService.setLotNr(
+                spoolId: sourceSpool.id,
+                lotNr: sourceLotNrAfterRemoval,
+                baseUrl: spoolmanUrl
+            )
+        } else {
+            sourceUpdated = await spoolmanService.clearLotNr(
+                spoolId: sourceSpool.id,
+                baseUrl: spoolmanUrl
+            )
+        }
+
+        if let refreshedDestination = spoolmanService.spools.first(where: { $0.id == destinationSpool.id }) {
+            hubState = .authoritativeSpool(refreshedDestination)
+        } else {
+            hubState = .authoritativeSpool(destinationSpool)
+        }
+
+        if !sourceUpdated {
+            persistenceError = "Tag mapping moved to destination spool, but source spool could not be cleaned up."
+            clearReusableMoveContext()
+            return false
+        }
+
+        didJustMapCurrentTag = false
+        persistenceError = nil
+        clearReusableMoveContext()
+        return true
     }
 
     private func handleSecondTagScanCompletion() async {
@@ -440,7 +629,7 @@ struct ScanResultHubView: View {
         suggestedNewSpoolSource = scored.first?.source
     }
 
-    private func prepareWriteTagData(withAssociatedSpool spool: SpoolmanSpool? = nil) {
+    private func prepareWriteTagData(withMappedSpool spool: SpoolmanSpool? = nil) {
         var data = result.tagData
         if let spool, writeSpoolId {
             if data == nil {
@@ -454,10 +643,13 @@ struct ScanResultHubView: View {
     }
 
     private func createNewSpoolFromBestMatch() {
+        clearReusableMoveContext()
         createNewSpool(from: nil)
     }
 
     private func createNewSpoolFromUIDOnly() {
+        clearReusableMoveContext()
+
         guard result.cardUID != nil else {
             createSpoolError = "Tag UID is unavailable for creating a new spool."
             return
@@ -703,8 +895,8 @@ struct ScanResultHubView: View {
 
     @ViewBuilder
     private var topCard: some View {
-        if let spool = associatedSpool {
-            confirmedSpoolCard(spool: spool, label: "Associated Spool")
+        if let spool = mappedSpool {
+            confirmedSpoolCard(spool: spool, label: "Mapped Spool")
         } else {
             unknownMappingCard
         }
@@ -803,7 +995,7 @@ struct ScanResultHubView: View {
 
     @ViewBuilder
     private func matchSection(matches: [FilamentMatchResult]) -> some View {
-        let associationState = Self.existingSpoolAssociationState(
+        let mappingState = Self.existingSpoolMappingState(
             cardUID: result.cardUID,
             persistCardUID: persistCardUID,
             spoolmanConfigured: !spoolmanUrl.isEmpty
@@ -815,10 +1007,10 @@ struct ScanResultHubView: View {
             }
 
             if let top = matches.first {
-                associateSpoolSuggestionCard(
+                mapSpoolSuggestionCard(
                     topMatch: top,
                     matchesCount: matches.count,
-                    associationState: associationState
+                    mappingState: mappingState
                 )
             }
         }
@@ -857,15 +1049,15 @@ struct ScanResultHubView: View {
     }
 
     @ViewBuilder
-    private func associateSpoolSuggestionCard(
+    private func mapSpoolSuggestionCard(
         topMatch: FilamentMatchResult,
         matchesCount: Int,
-        associationState: UIDOnlyActionsState
+        mappingState: UIDOnlyActionsState
     ) -> some View {
-        let associationEnabled = associationState == .enabled
+        let mappingEnabled = mappingState == .enabled
 
         VStack(alignment: .leading, spacing: 12) {
-            Label("Suggested Association", systemImage: "sparkle")
+            Label("Suggested Spool", systemImage: "sparkle")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -874,25 +1066,27 @@ struct ScanResultHubView: View {
             Button {
                 handleManualSelection(spool: topMatch.spool)
             } label: {
-                Label("Associate with Existing Spool", systemImage: "link")
+                Label("Map to Existing Spool", systemImage: "link")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .disabled(!associationEnabled)
+            .disabled(!mappingEnabled)
 
             if matchesCount > 1 {
                 Button {
+                    chooserAllowAllSpools = false
+                    chooserExcludedSpoolIDs = []
                     navigateToChooser = true
                 } label: {
                     Label("See \(matchesCount - 1) more candidates", systemImage: "list.bullet")
                         .font(.subheadline)
                 }
                 .buttonStyle(.borderless)
-                .disabled(!associationEnabled)
+                .disabled(!mappingEnabled)
             }
 
-            if let associationHint = associationHintText(for: associationState) {
-                Text(associationHint)
+            if let mappingHint = mappingHintText(for: mappingState) {
+                Text(mappingHint)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -1021,11 +1215,14 @@ struct ScanResultHubView: View {
     }
 
     @ViewBuilder
-    private func associationActions(spool: SpoolmanSpool) -> some View {
+    private func mappingActions(spool: SpoolmanSpool) -> some View {
+        let sourceMappedUIDs = SpoolMappingService.cardUIDs(in: spool.lotNr)
+        let sourceUIDSelectionState = Self.moveSourceUIDSelectionState(sourceMappedUIDs: sourceMappedUIDs)
+
         VStack(alignment: .leading, spacing: 10) {
             if writeSpoolId, result.tagData?.spoolmanId == nil {
                 Button {
-                    prepareWriteTagData(withAssociatedSpool: spool)
+                    prepareWriteTagData(withMappedSpool: spool)
                 } label: {
                     Label("Write Spool ID to Tag", systemImage: "wave.3.right")
                         .frame(maxWidth: .infinity)
@@ -1039,7 +1236,7 @@ struct ScanResultHubView: View {
                 let mappingAction = Self.uidMappingActionState(
                     persistCardUID: persistCardUID,
                     tagMapped: mapped,
-                    didJustAssociateCurrentTag: didJustAssociateCurrentTag,
+                    didJustMapCurrentTag: didJustMapCurrentTag,
                     isSecondTagScanning: secondTagNFCManager.isScanning,
                     mappedUIDCount: mappedUIDs.count
                 )
@@ -1081,20 +1278,92 @@ struct ScanResultHubView: View {
                 }
             }
 
+            if let scannedUID = result.cardUID {
+                let mappingState = Self.existingSpoolMappingState(
+                    cardUID: scannedUID,
+                    persistCardUID: persistCardUID,
+                    spoolmanConfigured: !spoolmanUrl.isEmpty
+                )
+                let mappingEnabled = mappingState == .enabled
+
+                Divider()
+
+                Label("Reusable Spool", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                switch sourceUIDSelectionState {
+                case .visible(let defaultMoveBoth):
+                    Toggle("Move both mapped tag IDs", isOn: $moveBothMappedTagIDs)
+                        .font(.subheadline)
+                        .onAppear {
+                            if moveBothMappedTagIDs != defaultMoveBoth {
+                                moveBothMappedTagIDs = defaultMoveBoth
+                            }
+                        }
+                case .hidden:
+                    EmptyView()
+                }
+
+                Button {
+                    let movedUIDs = Self.selectedUIDsForReusableMove(
+                        scannedUID: scannedUID,
+                        sourceMappedUIDs: sourceMappedUIDs,
+                        moveBothWhenAvailable: moveBothMappedTagIDs
+                    )
+                    reusableMoveSourceSpool = spool
+                    reusableMoveUIDs = movedUIDs
+                    overrideInitialLotNrForNewSpool = SpoolMappingService.lotNumber(for: movedUIDs)
+                    createSpoolError = nil
+                    persistenceError = nil
+                    navigateToCreateSpool = true
+                } label: {
+                    Label("Create New Spool (Reusable)", systemImage: "plus")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!mappingEnabled)
+
+                Button {
+                    let movedUIDs = Self.selectedUIDsForReusableMove(
+                        scannedUID: scannedUID,
+                        sourceMappedUIDs: sourceMappedUIDs,
+                        moveBothWhenAvailable: moveBothMappedTagIDs
+                    )
+                    reusableMoveSourceSpool = spool
+                    reusableMoveUIDs = movedUIDs
+                    chooserAllowAllSpools = true
+                    chooserExcludedSpoolIDs = [spool.id]
+                    persistenceError = nil
+                    navigateToChooser = true
+                } label: {
+                    Label("Map to Another Spool", systemImage: "arrow.left.arrow.right")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!mappingEnabled)
+
+                if let mappingHint = mappingHintText(for: mappingState) {
+                    Text(mappingHint)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
-    private func associationHintText(for state: UIDOnlyActionsState) -> String? {
+    private func mappingHintText(for state: UIDOnlyActionsState) -> String? {
         switch state {
         case .disabledByMappingSetting:
-            return "Enable \"Save Tag ID to Spoolman Lot nr.\" in Settings to associate this tag with an existing spool."
+            return "Enable \"Save Tag ID to Spoolman Lot nr.\" in Settings to map this tag to an existing spool."
         case .disabledByConnection:
-            return "Connect to a Spoolman server in Settings to associate this tag with an existing spool."
+            return "Connect to a Spoolman server in Settings to map this tag to an existing spool."
         case .unavailable:
-            return "Tag UID is unavailable, so association by UID is not possible."
+            return "Tag UID is unavailable, so mapping by UID is not possible."
         case .enabled:
             return nil
         }
@@ -1111,12 +1380,12 @@ struct ScanResultHubView: View {
             showCreateSpool: showCreateSpool,
             showUIDActionsForEncryptedTag: showUIDActionsForEncryptedTag
         )
-        let associationState = Self.existingSpoolAssociationState(
+        let mappingState = Self.existingSpoolMappingState(
             cardUID: result.cardUID,
             persistCardUID: persistCardUID,
             spoolmanConfigured: !spoolmanUrl.isEmpty
         )
-        let associationEnabled = associationState == .enabled
+        let mappingEnabled = mappingState == .enabled
 
         VStack(spacing: 10) {
             if tagData != nil {
@@ -1130,16 +1399,18 @@ struct ScanResultHubView: View {
                     .buttonStyle(.borderedProminent)
 
                     Button {
+                        chooserAllowAllSpools = false
+                        chooserExcludedSpoolIDs = []
                         navigateToChooser = true
                     } label: {
-                        Label("Associate with Existing Spool", systemImage: "link")
+                        Label("Map to Existing Spool", systemImage: "link")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
-                    .disabled(!associationEnabled)
+                    .disabled(!mappingEnabled)
 
-                    if let associationHint = associationHintText(for: associationState) {
-                        Text(associationHint)
+                    if let mappingHint = mappingHintText(for: mappingState) {
+                        Text(mappingHint)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -1175,7 +1446,7 @@ struct ScanResultHubView: View {
                     persistCardUID: persistCardUID,
                     spoolmanConfigured: !spoolmanUrl.isEmpty
                 )
-                let encryptedAssociationEnabled = uidActionsState == .enabled
+                let encryptedMappingEnabled = uidActionsState == .enabled
                 let creationEnabled = uidActionsState != .disabledByConnection && uidActionsState != .unavailable
 
                 Button {
@@ -1195,21 +1466,23 @@ struct ScanResultHubView: View {
                 .disabled(!creationEnabled)
 
                 Button {
+                    chooserAllowAllSpools = false
+                    chooserExcludedSpoolIDs = []
                     navigateToChooser = true
                 } label: {
-                    Label("Associate with Existing Spool", systemImage: "link")
+                    Label("Map to Existing Spool", systemImage: "link")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
-                .disabled(!encryptedAssociationEnabled)
+                .disabled(!encryptedMappingEnabled)
 
                 switch uidActionsState {
                 case .disabledByMappingSetting:
-                    Text("Enable \"Save Tag ID to Spoolman Lot nr.\" in Settings to create or associate by UID.")
+                    Text("Enable \"Save Tag ID to Spoolman Lot nr.\" in Settings to create or map by UID.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 case .disabledByConnection:
-                    Text("Connect to a Spoolman server in Settings to create or associate by UID.")
+                    Text("Connect to a Spoolman server in Settings to create or map by UID.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 case .unavailable, .enabled:

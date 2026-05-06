@@ -46,4 +46,31 @@ struct SpoolMappingServiceTests {
 
         #expect(lotNr == "card_uid:first,card_uid:third")
     }
+
+    @Test func removingMappedUIDLeavesRemainingUID() {
+        let lotNr = SpoolMappingService.lotNumber(
+            removing: ["first"],
+            from: "card_uid:first,card_uid:second"
+        )
+
+        #expect(lotNr == "card_uid:second")
+    }
+
+    @Test func removingAllMappedUIDsClearsLotNumber() {
+        let lotNr = SpoolMappingService.lotNumber(
+            removing: ["first", "second"],
+            from: "card_uid:first,card_uid:second"
+        )
+
+        #expect(lotNr == nil)
+    }
+
+    @Test func replacingAllMappedUIDsOverwritesDestinationLotNumber() {
+        let lotNr = SpoolMappingService.replacingAllUIDs(
+            in: "card_uid:dest1",
+            with: ["first", "second"]
+        )
+
+        #expect(lotNr == "card_uid:first,card_uid:second")
+    }
 }

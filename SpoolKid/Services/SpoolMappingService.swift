@@ -65,6 +65,19 @@ enum SpoolMappingService {
         return .updated(lotNumber(for: existing))
     }
 
+    static func lotNumber(removing uids: [String], from existingLotNumber: String?) -> String? {
+        let toRemove = Set(uniqueNormalizedUIDs(from: uids))
+        let remaining = cardUIDs(in: existingLotNumber).filter { !toRemove.contains($0) }
+        guard !remaining.isEmpty else { return nil }
+        return lotNumber(for: remaining)
+    }
+
+    static func replacingAllUIDs(in existingLotNumber: String?, with uids: [String]) -> String? {
+        let normalized = uniqueNormalizedUIDs(from: uids)
+        guard !normalized.isEmpty else { return nil }
+        return lotNumber(for: normalized)
+    }
+
     static func replacingUID(in existingLotNumber: String?, slot: Slot, with uid: String) -> String {
         var existing = cardUIDs(in: existingLotNumber)
         let index = slot == .first ? 0 : 1
