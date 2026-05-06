@@ -24,6 +24,7 @@ struct SpoolmanDBFilament: Codable, Identifiable, Hashable {
     let manufacturer: String
     let name: String
     let material: String
+    let spoolType: String?
     let density: Double
     let weight: Double?
     let spoolWeight: Double?
@@ -37,6 +38,7 @@ struct SpoolmanDBFilament: Codable, Identifiable, Hashable {
         case manufacturer
         case name
         case material
+        case spoolType = "spool_type"
         case density
         case weight
         case spoolWeight = "spool_weight"

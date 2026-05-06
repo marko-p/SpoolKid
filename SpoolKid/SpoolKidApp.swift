@@ -35,7 +35,9 @@ struct SpoolKidApp: App {
             "remember_spool_data": false,
             "remember_filament_data": false,
             "confirm_before_delete": true,
-            AppConfig.resetAppDataKey: false
+            AppConfig.resetAppDataKey: false,
+            // Tag Matching & UID Persistence
+            AppConfig.spoolmanPersistCardUIDKey: false
         ])
         
         // Handle the "Reset All Data on Next Launch" flag from Settings.bundle

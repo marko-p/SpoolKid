@@ -41,16 +41,6 @@
 		</dict>
 		<dict>
 			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
-			<key>Title</key>
-			<string>Write Spool ID to Tag</string>
-			<key>Key</key>
-			<string>write_spool_id</string>
-			<key>DefaultValue</key>
-			<true/>
-		</dict>
-		<dict>
-			<key>Type</key>
 			<string>PSMultiValueSpecifier</string>
 			<key>Title</key>
 			<string>Recent Tags to Remember</string>
@@ -240,6 +230,35 @@
 			<string>confirm_before_delete</string>
 			<key>DefaultValue</key>
 			<true/>
+		</dict>
+		<!-- Tag - Spoolman Mapping -->
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Tag - Spoolman Mapping</string>
+			<key>FooterText</key>
+			<string>Controls how tag data maps to Spoolman. SpoolKid always shows candidate matches for confirmation and never auto-accepts.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Write Spool ID to Tag</string>
+			<key>Key</key>
+			<string>write_spool_id</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Save Tag ID to Spoolman Lot nr.</string>
+			<key>Key</key>
+			<string>spoolman_persist_card_uid</string>
+			<key>DefaultValue</key>
+			<false/>
 		</dict>
 		<!-- Reset -->
 		<dict>

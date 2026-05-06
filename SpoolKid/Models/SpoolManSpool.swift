@@ -25,7 +25,10 @@ struct SpoolmanSpool: Codable, Identifiable, Sendable {
     let spoolWeight: Double?
     let usedWeight: Double?
     let price: Double?
-    
+    /// Firmware-compatible UID mapping field. Format: `card_uid:XXX[,card_uid:YYY]`
+    /// Managed by `SpoolMappingService`. Nil when not set or not returned by Spoolman.
+    let lotNr: String?
+
     enum CodingKeys: String, CodingKey {
         case id
         case filament
@@ -34,6 +37,7 @@ struct SpoolmanSpool: Codable, Identifiable, Sendable {
         case spoolWeight = "spool_weight"
         case usedWeight = "used_weight"
         case price
+        case lotNr = "lot_nr"
     }
 }
 

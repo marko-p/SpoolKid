@@ -45,11 +45,27 @@ SpoolKid reads and writes NFC tags (NTAG213/215/216) in four formats. Reading au
 | **OpenTag3D** | NDEF with `application/opentag3d` MIME type. |
 | **Anycubic ACE** | Raw page writes (non-NDEF) for ACE Pro spool holder compatibility. |
 
+### Encrypted Tags (Bambu Lab and similar)
+
+SpoolKid detects encrypted MIFARE Classic tags — the format used by Bambu Lab spools. Because iOS CoreNFC cannot authenticate MIFARE Classic sectors, the tag payload cannot be read. However, SpoolKid captures the tag's hardware UID, which can be linked to a Spoolman spool for automatic identification on future scans.
+
+### Universal Scan Result Hub
+
+After every successful scan (regardless of tag format), SpoolKid routes you to a Scan Result Hub that intelligently identifies the scanned spool:
+
+1. **Authoritative match** — if the tag embeds a Spoolman spool ID, the matching spool is shown immediately.
+2. **UID lookup** — if the tag's hardware UID is already linked to a spool (via `lot_nr`), that spool is shown.
+3. **Heuristic match** — filament data on the tag (material, brand, color, temperatures) is scored against your Spoolman library and ranked candidates are shown for confirmation.
+4. **Encrypted tag** — UID-only card with a copy button for manual linking.
+
+From the hub you can confirm the match, choose a different spool, write a new NFC tag, or save the scan to Recent Tags.
+
 ### Spoolman Integration
 
 - Browse and manage **Spools**, **Filaments**, and **Vendors** directly from your Spoolman instance.
 - Import filament definitions from the global [SpoolmanDB](https://github.com/Donkie/SpoolmanDB) catalog, automatically creating the vendor and filament in your local Spoolman.
 - Create a spool and write its NFC tag in a single step with **Save and Write NFC Tag**.
+- **Tag UID slots**: link up to two physical tag UIDs to each spool (compatible with [Snapmaker U1 Extended Firmware PR #364](https://github.com/paxx12/SnapmakerU1-Extended-Firmware/pull/364)). Stored in `lot_nr` as `card_uid:UID[,card_uid:UID2]`. Assign UIDs by scanning directly from the spool edit form.
 - Pull-to-refresh on all management lists.
 
 ### Recent Tags
@@ -66,6 +82,7 @@ All settings live in the iOS **Settings** app (Settings > SpoolKid), not inside 
 
 - **NFC Tag Options** -- write format, spool ID writing, recent tags limit.
 - **Printer Compatibility** -- Snapmaker U1 material validation.
+- **Tag - Spoolman Mapping** -- write spool ID to tags and persist scanned tag IDs to Spoolman `lot_nr`.
 - **Spoolman Connection** -- server URL, certificate trust.
 - **Authentication** -- None, Basic Auth, or API Key / Bearer Token.
 - **Spoolman Management** -- remember last spool/filament data, confirm before deleting.
@@ -81,8 +98,8 @@ All settings live in the iOS **Settings** app (Settings > SpoolKid), not inside 
 
 | Directory | Contents |
 |---|---|
-| `Models/` | Data structures for NFC tags (`FilamentTagData`) and Spoolman API objects (`SpoolmanSpool`, etc.). |
-| `Services/` | Networking (`SpoolmanService`), external DB (`SpoolmanDBService`), recent tags (`RecentTagManager`), config (`AppConfig`). |
+| `Models/` | Data structures for NFC tags (`FilamentTagData`), Spoolman API objects (`SpoolmanSpool`, etc.), scan output (`ScanResult`), and MIFARE detection (`BambuTagProbe`). |
+| `Services/` | Networking (`SpoolmanService`), external DB (`SpoolmanDBService`), recent tags (`RecentTagManager`), heuristic matching (`FilamentMatchService`), UID slot management (`SpoolMappingService`), config (`AppConfig`). |
 | `NFC/` | `NFCManager` -- CoreNFC read/write logic and format encoding. |
 | `Views/` | SwiftUI views for the entire UI. |
 | `Settings.bundle/` | iOS Settings app preferences. |
