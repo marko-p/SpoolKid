@@ -44,6 +44,54 @@ nonisolated struct AppConfig {
 
     /// Whether to persist a scanned card UID back to the matched spool's lot_nr in Spoolman.
     static let spoolmanPersistCardUIDKey = "spoolman_persist_card_uid"      // Bool, default false
+
+    // MARK: - Spoolman Field Visibility
+
+    static let visibilityVendorNameKey = "visibility_vendor_name"
+    static let visibilityVendorCommentKey = "visibility_vendor_comment"
+    static let visibilityVendorEmptySpoolWeightKey = "visibility_vendor_empty_spool_weight"
+    static let visibilityVendorExternalIdKey = "visibility_vendor_external_id"
+    static let visibilityVendorExtraKey = "visibility_vendor_extra"
+
+    static let visibilityFilamentPriceKey = "visibility_filament_price"
+    static let visibilityFilamentWeightKey = "visibility_filament_weight"
+    static let visibilityFilamentSpoolWeightKey = "visibility_filament_spool_weight"
+    static let visibilityFilamentArticleNumberKey = "visibility_filament_article_number"
+    static let visibilityFilamentCommentKey = "visibility_filament_comment"
+    static let visibilityFilamentMultiColorHexesKey = "visibility_filament_multi_color_hexes"
+    static let visibilityFilamentMultiColorDirectionKey = "visibility_filament_multi_color_direction"
+    static let visibilityFilamentExternalIdKey = "visibility_filament_external_id"
+    static let visibilityFilamentExtraKey = "visibility_filament_extra"
+
+    static let visibilitySpoolUsedWeightKey = "visibility_spool_used_weight"
+    static let visibilitySpoolCommentKey = "visibility_spool_comment"
+    static let visibilitySpoolArchivedKey = "visibility_spool_archived"
+    static let visibilitySpoolFirstUsedKey = "visibility_spool_first_used"
+    static let visibilitySpoolLastUsedKey = "visibility_spool_last_used"
+    static let visibilitySpoolExtraKey = "visibility_spool_extra"
+
+    static let fieldVisibilityDefaults: [String: Any] = [
+        visibilityVendorNameKey: true,
+        visibilityVendorCommentKey: false,
+        visibilityVendorEmptySpoolWeightKey: false,
+        visibilityVendorExternalIdKey: false,
+        visibilityVendorExtraKey: false,
+        visibilityFilamentPriceKey: false,
+        visibilityFilamentWeightKey: false,
+        visibilityFilamentSpoolWeightKey: false,
+        visibilityFilamentArticleNumberKey: false,
+        visibilityFilamentCommentKey: false,
+        visibilityFilamentMultiColorHexesKey: false,
+        visibilityFilamentMultiColorDirectionKey: false,
+        visibilityFilamentExternalIdKey: false,
+        visibilityFilamentExtraKey: false,
+        visibilitySpoolUsedWeightKey: false,
+        visibilitySpoolCommentKey: false,
+        visibilitySpoolArchivedKey: false,
+        visibilitySpoolFirstUsedKey: false,
+        visibilitySpoolLastUsedKey: false,
+        visibilitySpoolExtraKey: false
+    ]
     
     static let materialPresets: [String: (extruder: Int, bed: Int)] = [
         "PLA": (210, 50),

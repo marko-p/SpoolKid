@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+	<dict>
+		<key>Type</key>
+		<string>PSGroupSpecifier</string>
+		<key>Title</key>
+		<string>Vendor Optional Fields</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Comment</string>
+		<key>Key</key>
+		<string>visibility_vendor_comment</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Default Empty Spool Weight</string>
+		<key>Key</key>
+		<string>visibility_vendor_empty_spool_weight</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>External ID</string>
+		<key>Key</key>
+		<string>visibility_vendor_external_id</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Extra JSON (Advanced)</string>
+		<key>Key</key>
+		<string>visibility_vendor_extra</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	</array>
+</dict>
+</plist>

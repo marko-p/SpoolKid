@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+	<dict>
+		<key>Type</key>
+		<string>PSGroupSpecifier</string>
+		<key>Title</key>
+		<string>Spoolman Field Visibility</string>
+		<key>FooterText</key>
+		<string>Choose which optional fields appear in each Spoolman form.</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSChildPaneSpecifier</string>
+		<key>Title</key>
+		<string>Spool Fields</string>
+		<key>File</key>
+		<string>SpoolVisibility</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSChildPaneSpecifier</string>
+		<key>Title</key>
+		<string>Filament Fields</string>
+		<key>File</key>
+		<string>FilamentVisibility</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSChildPaneSpecifier</string>
+		<key>Title</key>
+		<string>Vendor Fields</string>
+		<key>File</key>
+		<string>VendorVisibility</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSChildPaneSpecifier</string>
+		<key>Title</key>
+		<string>Location Fields</string>
+		<key>File</key>
+		<string>LocationVisibility</string>
+	</dict>
+	</array>
+</dict>
+</plist>

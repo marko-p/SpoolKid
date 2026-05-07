@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+	<dict>
+		<key>Type</key>
+		<string>PSGroupSpecifier</string>
+		<key>Title</key>
+		<string>Spool Optional Fields</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Used Weight</string>
+		<key>Key</key>
+		<string>visibility_spool_used_weight</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Comment</string>
+		<key>Key</key>
+		<string>visibility_spool_comment</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Archived</string>
+		<key>Key</key>
+		<string>visibility_spool_archived</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>First Used</string>
+		<key>Key</key>
+		<string>visibility_spool_first_used</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Last Used</string>
+		<key>Key</key>
+		<string>visibility_spool_last_used</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Extra JSON (Advanced)</string>
+		<key>Key</key>
+		<string>visibility_spool_extra</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	</array>
+</dict>
+</plist>

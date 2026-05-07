@@ -203,6 +203,14 @@
 		</dict>
 		<dict>
 			<key>Type</key>
+			<string>PSChildPaneSpecifier</string>
+			<key>Title</key>
+			<string>Spoolman Field Visibility</string>
+			<key>File</key>
+			<string>SpoolmanFieldVisibility</string>
+		</dict>
+		<dict>
+			<key>Type</key>
 			<string>PSToggleSwitchSpecifier</string>
 			<key>Title</key>
 			<string>Remember Last Spool Data</string>

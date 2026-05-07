@@ -28,9 +28,28 @@ struct ManageFilamentsView: View {
             return spoolManService.filaments
         }
         return spoolManService.filaments.filter { filament in
-            let searchString = "\(filament.name ?? "") \(filament.vendor?.name ?? "") \(filament.material ?? "") \(filament.id)"
+            let searchString = "\(filament.name ?? "") \(filament.vendor?.name ?? "") \(filament.material ?? "") \(filament.articleNumber ?? "") \(filament.externalId ?? "") \(filament.id)"
             return searchString.localizedCaseInsensitiveContains(searchText)
         }
+    }
+
+    private func filamentSummary(_ filament: SpoolmanFilament) -> String? {
+        var parts: [String] = []
+
+        if let articleNumber = filament.articleNumber,
+           !articleNumber.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            parts.append("Article: \(articleNumber)")
+        }
+
+        if let price = filament.price {
+            parts.append(String(format: "$%.2f", price))
+        }
+
+        if let weight = filament.weight {
+            parts.append(String(format: "%.0f g", weight))
+        }
+
+        return parts.isEmpty ? nil : parts.joined(separator: " • ")
     }
     
     var body: some View {
@@ -85,6 +104,13 @@ struct ManageFilamentsView: View {
                                 .lineLimit(1)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+
+                                if let summary = filamentSummary(filament) {
+                                    Text(summary)
+                                        .lineLimit(1)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
                         .padding(.vertical, 4)

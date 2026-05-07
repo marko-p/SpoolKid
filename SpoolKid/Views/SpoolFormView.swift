@@ -3,11 +3,6 @@
 //  SpoolKid
 //
 //  Purpose: Form for creating or editing a Spool in Spoolman.
-//  Features:
-//  - Filament selection (via `FilamentSelectionView`).
-//  - Weight management (Initial, Empty, Remaining/Used).
-//  - "Measured Weight" mode: Calculates remaining filament by subtracting empty spool weight from total measured weight.
-//  - Tag UID slot management (lot_nr): scan or clear up to two tag UIDs per spool.
 //
 
 //
@@ -41,7 +36,6 @@ struct SpoolFormView: View {
     @StateObject private var recentTagManager = RecentTagManager()
     @State private var writeToNfc = false
 
-    // Snapmaker U1 compatibility state
     @State private var showCompatPicker = false
     @State private var incompatibleMaterial = ""
     @State private var pendingTagData: FilamentTagData? = nil
@@ -50,15 +44,24 @@ struct SpoolFormView: View {
     @State private var price: String = ""
     @State private var initialWeight: String = "1000"
     @State private var spoolWeight: String = ""
+    @State private var location: String = ""
+    @State private var clearLocationWhenEmpty: Bool = true
+    @State private var comment: String = ""
+    @State private var archived: Bool = false
+    @State private var firstUsedISO8601: String = ""
+    @State private var lastUsedISO8601: String = ""
+    @State private var extraJSON: String = ""
+
     @State private var isSaved: Bool = false
+    @State private var isSaving: Bool = false
     @State private var savedSpool: SpoolmanSpool? = nil
     @State private var hasInitialized = false
     @State private var validationError: String? = nil
+    @State private var saveErrorMessage: String?
 
-    // Tag UID slots (lot_nr)
     @State private var uidSlot1: String = ""
     @State private var uidSlot2: String = ""
-    @State private var scanningSlot: Int? = nil   // 1 or 2 while scanning for a slot
+    @State private var scanningSlot: Int? = nil
 
     enum WeightMode: String, CaseIterable {
         case remaining = "Remaining"
@@ -69,7 +72,105 @@ struct SpoolFormView: View {
     @State private var weightMode: WeightMode = .remaining
     @State private var weightInput: String = ""
 
-    // MARK: - Form sections
+    private static let dateFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    static func visibleFieldIDs(store: SpoolmanFieldVisibilityStore = .init()) -> Set<String> {
+        store.visibleFieldIDs(for: .spool)
+    }
+
+    private static func normalized(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    static func locationPatch(for location: String, clearLocationWhenEmpty: Bool) -> SpoolmanPatchValue<String> {
+        let normalizedLocation = normalized(location)
+        if normalizedLocation.isEmpty {
+            return clearLocationWhenEmpty ? .setNil : .ignore
+        }
+        return .set(normalizedLocation)
+    }
+
+    static func spoolPayload(
+        filamentId: Int?,
+        price: String,
+        initialWeight: String,
+        spoolWeight: String,
+        remainingWeight: String,
+        usedWeight: String,
+        location: String,
+        clearLocationWhenEmpty: Bool,
+        lotNr: String,
+        comment: String,
+        archived: Bool,
+        firstUsedISO8601: String,
+        lastUsedISO8601: String,
+        extraJSON: String
+    ) -> [String: Any] {
+        func parseDouble(_ value: String) -> Double? {
+            let normalizedValue = normalized(value).replacingOccurrences(of: ",", with: ".")
+            guard !normalizedValue.isEmpty else { return nil }
+            return Double(normalizedValue)
+        }
+
+        let normalizedExtraJSON = normalized(extraJSON)
+        let extra: [String: String]? = if normalizedExtraJSON.isEmpty {
+            nil
+        } else {
+            (try? JSONSerialization.jsonObject(with: Data(normalizedExtraJSON.utf8))) as? [String: String]
+        }
+
+        return SpoolmanPayloadBuilder.spoolPayload(
+            filamentId: filamentId,
+            firstUsed: normalized(firstUsedISO8601).isEmpty ? nil : normalized(firstUsedISO8601),
+            lastUsed: normalized(lastUsedISO8601).isEmpty ? nil : normalized(lastUsedISO8601),
+            price: parseDouble(price),
+            initialWeight: parseDouble(initialWeight),
+            spoolWeight: parseDouble(spoolWeight),
+            remainingWeight: parseDouble(remainingWeight),
+            usedWeight: parseDouble(usedWeight),
+            location: locationPatch(for: location, clearLocationWhenEmpty: clearLocationWhenEmpty),
+            lotNr: normalized(lotNr).isEmpty ? nil : normalized(lotNr),
+            comment: normalized(comment).isEmpty ? nil : normalized(comment),
+            archived: archived,
+            extra: extra
+        )
+    }
+
+    static func clearFieldKeysForUpdate(
+        comment: String,
+        firstUsedISO8601: String,
+        lastUsedISO8601: String,
+        extraJSON: String,
+        lotNr: String
+    ) -> Set<String> {
+        var keys: Set<String> = []
+
+        if normalized(comment).isEmpty {
+            keys.insert("comment")
+        }
+
+        if normalized(firstUsedISO8601).isEmpty {
+            keys.insert("first_used")
+        }
+
+        if normalized(lastUsedISO8601).isEmpty {
+            keys.insert("last_used")
+        }
+
+        if normalized(extraJSON).isEmpty {
+            keys.insert("extra")
+        }
+
+        if normalized(lotNr).isEmpty {
+            keys.insert("lot_nr")
+        }
+
+        return keys
+    }
 
     @ViewBuilder
     private var filamentSection: some View {
@@ -161,6 +262,50 @@ struct SpoolFormView: View {
     }
 
     @ViewBuilder
+    private var locationSection: some View {
+        Section("Location") {
+            Picker("Location", selection: $location) {
+                Text("None").tag("")
+                ForEach(service.locations, id: \.self) { item in
+                    Text(item).tag(item)
+                }
+            }
+
+            Toggle("Clear location when empty", isOn: $clearLocationWhenEmpty)
+        }
+    }
+
+    @ViewBuilder
+    private func advancedSection(visibleFieldIDs: Set<String>) -> some View {
+        Section("Advanced") {
+            if visibleFieldIDs.contains("comment") {
+                TextField("Comment", text: $comment, axis: .vertical)
+                    .lineLimit(2...5)
+            }
+
+            if visibleFieldIDs.contains("archived") {
+                Toggle("Archived", isOn: $archived)
+            }
+
+            if visibleFieldIDs.contains("first_used") {
+                TextField("First Used (ISO8601)", text: $firstUsedISO8601)
+                    .textInputAutocapitalization(.never)
+            }
+
+            if visibleFieldIDs.contains("last_used") {
+                TextField("Last Used (ISO8601)", text: $lastUsedISO8601)
+                    .textInputAutocapitalization(.never)
+            }
+
+            if visibleFieldIDs.contains("extra") {
+                TextField("Extra JSON", text: $extraJSON, axis: .vertical)
+                    .lineLimit(2...5)
+                    .textInputAutocapitalization(.never)
+            }
+        }
+    }
+
+    @ViewBuilder
     private var tagUIDSection: some View {
         Section {
             uidSlotRow(slot: 1, uid: $uidSlot1)
@@ -198,6 +343,7 @@ struct SpoolFormView: View {
                 .listRowBackground(Color.clear)
             }
         }
+
         if let spool = savedSpool, writeToNfc {
             Section {
                 Button(action: { writeTag(for: spool) }) {
@@ -216,23 +362,40 @@ struct SpoolFormView: View {
     }
 
     var body: some View {
+        let visibleFieldIDs = Self.visibleFieldIDs()
+
         NavigationStack {
             Form {
                 filamentSection
                 propertiesSection
                 weightStatusSection
+
+                if visibleFieldIDs.contains("location") {
+                    locationSection
+                }
+
+                if visibleFieldIDs.contains("comment")
+                    || visibleFieldIDs.contains("archived")
+                    || visibleFieldIDs.contains("first_used")
+                    || visibleFieldIDs.contains("last_used")
+                    || visibleFieldIDs.contains("extra") {
+                    advancedSection(visibleFieldIDs: visibleFieldIDs)
+                }
+
                 tagUIDSection
                 actionSections
             }
             .hideKeyboardOnTap()
             .navigationTitle(spoolToEdit == nil ? "Add Spool" : "Edit Spool")
             .onChange(of: nfcManager.isScanning) { _, isScanning in
-                // Removed auto-dismiss logic to allow retrying.
-                // Capture slot scan result when scanning completes.
                 if persistCardUID, !isScanning, let result = nfcManager.scanResult, let slot = scanningSlot {
                     let uid = result.cardUID ?? ""
                     if !uid.isEmpty {
-                        if slot == 1 { uidSlot1 = uid } else { uidSlot2 = uid }
+                        if slot == 1 {
+                            uidSlot1 = uid
+                        } else {
+                            uidSlot2 = uid
+                        }
                     }
                     scanningSlot = nil
                     nfcManager.scanResult = nil
@@ -257,6 +420,19 @@ struct SpoolFormView: View {
             } message: {
                 if let msg = validationError { Text(msg) }
             }
+            .alert(
+                "Could Not Save Spool",
+                isPresented: Binding(
+                    get: { saveErrorMessage != nil },
+                    set: { if !$0 { saveErrorMessage = nil } }
+                )
+            ) {
+                Button("OK", role: .cancel) {
+                    saveErrorMessage = nil
+                }
+            } message: {
+                Text(saveErrorMessage ?? "Unknown error")
+            }
             .sheet(isPresented: $showCompatPicker) {
                 SnapmakerCompatPickerView(
                     incompatibleMaterial: incompatibleMaterial,
@@ -277,18 +453,22 @@ struct SpoolFormView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(isSaved ? "Saved" : "Save") {
                         saveSpool(writeAfter: false)
                     }
-                    .disabled(filamentId == nil || isSaved)
+                    .disabled(filamentId == nil || isSaved || isSaving)
                 }
             }
             .onAppear {
                 if !hasInitialized {
                     hasInitialized = true
-                    Task { await service.fetchFilaments(baseUrl: baseUrl) }
+                    Task {
+                        await service.fetchFilaments(baseUrl: baseUrl)
+                        await service.fetchLocations(baseUrl: baseUrl)
+                    }
 
                     if let spool = spoolToEdit {
                         filamentId = spool.filament.id
@@ -296,13 +476,25 @@ struct SpoolFormView: View {
                         if let iw = spool.initialWeight { initialWeight = String(iw) }
                         if let sw = spool.spoolWeight { spoolWeight = String(sw) }
 
-                        // Default to remaining weight for edit
                         if let rw = spool.remainingWeight {
                             weightMode = .remaining
                             weightInput = String(rw)
                         }
 
-                        // Populate UID slots from lot_nr
+                        location = spool.location ?? ""
+                        comment = spool.comment ?? ""
+                        archived = spool.archived ?? false
+                        firstUsedISO8601 = spool.firstUsed.map { Self.dateFormatter.string(from: $0) } ?? ""
+                        lastUsedISO8601 = spool.lastUsed.map { Self.dateFormatter.string(from: $0) } ?? ""
+
+                        if let extra = spool.extra,
+                           let data = try? JSONSerialization.data(withJSONObject: extra, options: [.sortedKeys]),
+                           let string = String(data: data, encoding: .utf8) {
+                            extraJSON = string
+                        } else {
+                            extraJSON = ""
+                        }
+
                         let slots = SpoolMappingService.cardUIDs(in: spool.lotNr)
                         uidSlot1 = slots.indices.contains(0) ? slots[0] : ""
                         uidSlot2 = slots.indices.contains(1) ? slots[1] : ""
@@ -333,7 +525,6 @@ struct SpoolFormView: View {
             }
             .onChange(of: nfcManager.lastWriteSucceeded) { _, succeeded in
                 if succeeded, var data = nfcManager.tagDataToWrite {
-                    // Restore name for Recent Tags display (may have been stripped for NFC format)
                     if data.name == nil {
                         data.name = savedSpool?.filament.name
                     }
@@ -343,20 +534,16 @@ struct SpoolFormView: View {
         }
     }
 
-    // MARK: - NFC write
-
     private func writeTag(for spool: SpoolmanSpool) {
         var data = FilamentTagData.from(spool: spool, writeSpoolId: configWriteSpoolId)
         let currentFormat = TagFormat(rawValue: nfcTagFormat) ?? .openSpool
         let isU1CompatActive = snapmakerU1Compat && currentFormat == .openSpool
 
-        // Adjust name/subtype based on format and compat mode
         if isU1CompatActive {
-            data.name = nil // U1 compat: keep subtype (derived from spool), omit name
+            data.name = nil
         } else if currentFormat == .openSpool {
-            data.subtype = nil // Non-U1 OpenSpool: keep name, omit subtype
+            data.subtype = nil
         }
-        // Other formats: keep both name and subtype as-is
 
         if isU1CompatActive {
             if let resolved = AppConfig.resolveSnapmakerU1Material(data.material) {
@@ -372,13 +559,16 @@ struct SpoolFormView: View {
         nfcManager.writeTag(data: data)
     }
 
-    // MARK: - Save
-
     private func saveSpool(writeAfter: Bool) {
         Task {
-            // Helper to parse doubles with comma or dot
+            if isSaving {
+                return
+            }
+            isSaving = true
+            defer { isSaving = false }
+
             func parseDouble(_ str: String) -> Double? {
-                let cleaned = str.replacingOccurrences(of: ",", with: ".")
+                let cleaned = str.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
                 return Double(cleaned)
             }
 
@@ -387,20 +577,19 @@ struct SpoolFormView: View {
             let spoolW = parseDouble(spoolWeight)
             let wInput = parseDouble(weightInput)
 
-            // Validate: reject negative values
-            if let p = p, p < 0 {
+            if let p, p < 0 {
                 validationError = "Price cannot be negative."
                 return
             }
-            if let initW = initW, initW < 0 {
+            if let initW, initW < 0 {
                 validationError = "Initial weight cannot be negative."
                 return
             }
-            if let spoolW = spoolW, spoolW < 0 {
+            if let spoolW, spoolW < 0 {
                 validationError = "Empty spool weight cannot be negative."
                 return
             }
-            if let wInput = wInput, wInput < 0 {
+            if let wInput, wInput < 0 {
                 validationError = "\(weightMode.rawValue) weight cannot be negative."
                 return
             }
@@ -417,68 +606,129 @@ struct SpoolFormView: View {
                 case .measured:
                     if let sW = spoolW {
                         remW = val - sW
+                        if let remW, remW < 0 {
+                            validationError = "Measured weight cannot be lower than empty spool weight."
+                            return
+                        }
                     } else {
                         remW = val
                     }
                 }
             }
 
-            if rememberSpoolData {
-                lastSpoolPrice = price
-                lastSpoolInitialWeight = initialWeight
-                lastSpoolEmptyWeight = spoolWeight
-                if let fId = filamentId {
-                    lastSpoolFilamentId = fId
+            let payload = Self.spoolPayload(
+                filamentId: filamentId,
+                price: price,
+                initialWeight: initialWeight,
+                spoolWeight: spoolWeight,
+                remainingWeight: remW.map { String($0) } ?? "",
+                usedWeight: usedW.map { String($0) } ?? "",
+                location: location,
+                clearLocationWhenEmpty: clearLocationWhenEmpty,
+                lotNr: lotNrForCurrentSave() ?? "",
+                comment: comment,
+                archived: archived,
+                firstUsedISO8601: firstUsedISO8601,
+                lastUsedISO8601: lastUsedISO8601,
+                extraJSON: extraJSON
+            )
+
+            let locationPatchForAdd: SpoolmanPatchValue<String> = {
+                let normalizedLocation = Self.normalized(location)
+                if normalizedLocation.isEmpty {
+                    return .ignore
                 }
-            }
+                return .set(normalizedLocation)
+            }()
+
+            let locationPatchForUpdate = Self.locationPatch(for: location, clearLocationWhenEmpty: clearLocationWhenEmpty)
+            let clearFieldKeys = Self.clearFieldKeysForUpdate(
+                comment: comment,
+                firstUsedISO8601: firstUsedISO8601,
+                lastUsedISO8601: lastUsedISO8601,
+                extraJSON: extraJSON,
+                lotNr: lotNrForCurrentSave() ?? ""
+            )
 
             if let spool = spoolToEdit {
-                await service.updateSpool(
+                let didSave = await service.updateSpool(
                     id: spool.id,
                     filamentId: filamentId,
-                    remainingWeight: remW,
-                    initialWeight: initW,
-                    spoolWeight: spoolW,
-                    usedWeight: usedW,
-                    price: p,
-                    lotNr: lotNrForCurrentSave(),
+                    remainingWeight: payload["remaining_weight"] as? Double,
+                    initialWeight: payload["initial_weight"] as? Double,
+                    spoolWeight: payload["spool_weight"] as? Double,
+                    usedWeight: payload["used_weight"] as? Double,
+                    price: payload["price"] as? Double,
+                    location: locationPatchForUpdate,
+                    lotNr: payload["lot_nr"] as? String,
+                    comment: payload["comment"] as? String,
+                    archived: payload["archived"] as? Bool,
+                    firstUsed: payload["first_used"] as? String,
+                    lastUsed: payload["last_used"] as? String,
+                    extra: payload["extra"] as? [String: String],
+                    clearFieldKeys: clearFieldKeys,
                     baseUrl: baseUrl
                 )
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                isSaved = true
-                dismiss()
-            } else {
-                if let fId = filamentId {
-                    let newSpool = await service.addSpool(
-                        filamentId: fId,
-                        remainingWeight: remW,
-                        initialWeight: initW,
-                        spoolWeight: spoolW,
-                        usedWeight: usedW,
-                        price: p,
-                        lotNr: lotNrForCurrentSave(),
-                        baseUrl: baseUrl
-                    )
 
-                    if let spool = newSpool {
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
-                        isSaved = true
-                        savedSpool = spool
-                        onSaveSpool?(spool)
-                        writeToNfc = writeAfter
-
-                        if writeAfter {
-                            writeTag(for: spool)
-                        } else {
-                            dismiss()
+                if didSave {
+                    if rememberSpoolData {
+                        lastSpoolPrice = price
+                        lastSpoolInitialWeight = initialWeight
+                        lastSpoolEmptyWeight = spoolWeight
+                        if let fId = filamentId {
+                            lastSpoolFilamentId = fId
                         }
                     }
+
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    isSaved = true
+                    dismiss()
+                } else {
+                    saveErrorMessage = service.errorMessage ?? "The spool could not be saved."
+                }
+            } else if let fId = filamentId {
+                let newSpool = await service.addSpool(
+                    filamentId: fId,
+                    remainingWeight: payload["remaining_weight"] as? Double,
+                    initialWeight: payload["initial_weight"] as? Double,
+                    spoolWeight: payload["spool_weight"] as? Double,
+                    usedWeight: payload["used_weight"] as? Double,
+                    price: payload["price"] as? Double,
+                    location: locationPatchForAdd,
+                    lotNr: payload["lot_nr"] as? String,
+                    comment: payload["comment"] as? String,
+                    archived: payload["archived"] as? Bool,
+                    firstUsed: payload["first_used"] as? String,
+                    lastUsed: payload["last_used"] as? String,
+                    extra: payload["extra"] as? [String: String],
+                    baseUrl: baseUrl
+                )
+
+                if let spool = newSpool {
+                    if rememberSpoolData {
+                        lastSpoolPrice = price
+                        lastSpoolInitialWeight = initialWeight
+                        lastSpoolEmptyWeight = spoolWeight
+                        lastSpoolFilamentId = fId
+                    }
+
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    isSaved = true
+                    savedSpool = spool
+                    onSaveSpool?(spool)
+                    writeToNfc = writeAfter
+
+                    if writeAfter {
+                        writeTag(for: spool)
+                    } else {
+                        dismiss()
+                    }
+                } else {
+                    saveErrorMessage = service.errorMessage ?? "The spool could not be saved."
                 }
             }
         }
     }
-
-    // MARK: - Tag UID helpers
 
     private func lotNrForCurrentSave() -> String? {
         Self.lotNrForSave(

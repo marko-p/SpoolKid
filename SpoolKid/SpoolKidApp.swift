@@ -39,6 +39,7 @@ struct SpoolKidApp: App {
             // Tag Matching & UID Persistence
             AppConfig.spoolmanPersistCardUIDKey: false
         ])
+        UserDefaults.standard.register(defaults: AppConfig.fieldVisibilityDefaults)
         
         // Handle the "Reset All Data on Next Launch" flag from Settings.bundle
         if UserDefaults.standard.bool(forKey: AppConfig.resetAppDataKey) {
