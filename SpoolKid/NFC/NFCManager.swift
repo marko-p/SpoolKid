@@ -61,15 +61,25 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
 
     private var ndefSession: NFCNDEFReaderSession?
     private var tagSession: NFCTagReaderSession?
-    /// The data most recently passed to `writeTag(data:)`. Accessible for post-write actions.
-    private(set) var tagDataToWrite: FilamentTagData?
-
     // Thread-safe access to mutable state shared between main thread and NFC delegate callbacks.
     private let stateQueue = DispatchQueue(label: "com.spoolkid.nfcmanager.state")
     private var _isWriting = false
+    private var _tagDataToWrite: FilamentTagData?
+    private var _writeFormatToUse: TagFormat?
     private var isWriting: Bool {
         get { stateQueue.sync { _isWriting } }
         set { stateQueue.sync { _isWriting = newValue } }
+    }
+
+    /// The data most recently passed to `writeTag(data:)`. Accessible for post-write actions.
+    private(set) var tagDataToWrite: FilamentTagData? {
+        get { stateQueue.sync { _tagDataToWrite } }
+        set { stateQueue.sync { _tagDataToWrite = newValue } }
+    }
+
+    private var writeFormatToUse: TagFormat? {
+        get { stateQueue.sync { _writeFormatToUse } }
+        set { stateQueue.sync { _writeFormatToUse = newValue } }
     }
 
     // MARK: - Public API
@@ -98,16 +108,20 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
     }
 
     func writeTag(data: FilamentTagData) {
+        writeTag(data: data, format: TagFormatService.shared.currentFormat)
+    }
+
+    func writeTag(data: FilamentTagData, format: TagFormat) {
         guard NFCNDEFReaderSession.readingAvailable else {
             alertMessage = "NFC is not available on this device."
             return
         }
 
         tagDataToWrite = data
+        writeFormatToUse = format
         isWriting = true
         lastWriteSucceeded = false
 
-        let format = TagFormatService.shared.currentFormat
         if format == .anycubicACE {
             // ACE requires raw page writes via NFCTagReaderSession
             startTagSession(message: "Hold your iPhone near the NFC tag to write (ACE format).")
@@ -373,7 +387,7 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
             return
         }
 
-        let format = TagFormatService.shared.currentFormat
+        let format = writeFormatToUse ?? TagFormatService.shared.currentFormat
 
         guard let payloadData = TagFormatService.shared.encode(data: dataToWrite, format: format) else {
             session.invalidate(errorMessage: "Failed to encode data for \(format.displayName).")
