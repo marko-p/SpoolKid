@@ -70,6 +70,13 @@ nonisolated struct AppConfig {
     static let visibilitySpoolLastUsedKey = "visibility_spool_last_used"
     static let visibilitySpoolExtraKey = "visibility_spool_extra"
 
+    static let visibilityNFCOpenSpoolNameKey = "visibility_nfc_opensp_name"
+    static let visibilityNFCOpenSpoolSubtypeKey = "visibility_nfc_opensp_subtype"
+    static let visibilityNFCOpenSpoolSpoolIDKey = "visibility_nfc_opensp_spool_id"
+    static let visibilityNFCOpenPrintTagSpoolIDKey = "visibility_nfc_opt_spool_id"
+    static let visibilityNFCOpenTag3DSubtypeKey = "visibility_nfc_ot3d_subtype"
+    static let visibilityNFCOpenTag3DNameKey = "visibility_nfc_ot3d_name"
+
     static let fieldVisibilityDefaults: [String: Any] = [
         visibilityVendorNameKey: true,
         visibilityVendorCommentKey: false,
@@ -90,7 +97,13 @@ nonisolated struct AppConfig {
         visibilitySpoolArchivedKey: false,
         visibilitySpoolFirstUsedKey: false,
         visibilitySpoolLastUsedKey: false,
-        visibilitySpoolExtraKey: false
+        visibilitySpoolExtraKey: false,
+        visibilityNFCOpenSpoolNameKey: true,
+        visibilityNFCOpenSpoolSubtypeKey: true,
+        visibilityNFCOpenSpoolSpoolIDKey: true,
+        visibilityNFCOpenPrintTagSpoolIDKey: false,
+        visibilityNFCOpenTag3DSubtypeKey: true,
+        visibilityNFCOpenTag3DNameKey: true
     ]
     
     static let materialPresets: [String: (extruder: Int, bed: Int)] = [

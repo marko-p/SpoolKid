@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+	<dict>
+		<key>Type</key>
+		<string>PSGroupSpecifier</string>
+		<key>Title</key>
+		<string>OpenSpool Optional Fields</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Name</string>
+		<key>Key</key>
+		<string>visibility_nfc_opensp_name</string>
+		<key>DefaultValue</key>
+		<true/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Subtype</string>
+		<key>Key</key>
+		<string>visibility_nfc_opensp_subtype</string>
+		<key>DefaultValue</key>
+		<true/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Spool ID</string>
+		<key>Key</key>
+		<string>visibility_nfc_opensp_spool_id</string>
+		<key>DefaultValue</key>
+		<true/>
+	</dict>
+	</array>
+</dict>
+</plist>

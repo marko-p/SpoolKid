@@ -21,6 +21,27 @@ struct VisibilityDefaultsStructureTests {
         #expect(hasChildPane(file: "LocationVisibility", in: visibilitySpecifiers))
     }
 
+    @Test func settingsHierarchyContainsNFCVisibilityPanes() throws {
+        let rootSpecifiers = try preferenceSpecifiers(from: "Root.plist")
+        #expect(hasChildPane(file: "NFCFieldVisibility", in: rootSpecifiers))
+
+        let nfcSpecifiers = try preferenceSpecifiers(from: "NFCFieldVisibility.plist")
+        #expect(hasChildPane(file: "OpenSpoolVisibility", in: nfcSpecifiers))
+        #expect(hasChildPane(file: "OpenPrintTagVisibility", in: nfcSpecifiers))
+        #expect(hasChildPane(file: "OpenTag3DVisibility", in: nfcSpecifiers))
+        #expect(hasChildPane(file: "AnycubicACEVisibility", in: nfcSpecifiers))
+    }
+
+    @Test func nfcVisibilityKeysExistInDefaults() {
+        let defaults = AppConfig.fieldVisibilityDefaults
+        #expect(defaults[AppConfig.visibilityNFCOpenSpoolNameKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenSpoolSubtypeKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenSpoolSpoolIDKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagSpoolIDKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenTag3DSubtypeKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenTag3DNameKey] != nil)
+    }
+
     @Test func visibilityToggleKeysStayInSyncWithConfigAndSchema() throws {
         let vendorKeys = try toggleKeys(from: "VendorVisibility.plist")
         let filamentKeys = try toggleKeys(from: "FilamentVisibility.plist")
@@ -78,6 +99,34 @@ struct VisibilityDefaultsStructureTests {
             let paneKeys = try toggleKeys(from: paneFile)
             #expect(paneKeys == expectedFieldKeys)
         }
+    }
+
+    @Test func nfcVisibilityToggleKeysStayInSyncWithConfig() throws {
+        let openSpoolKeys = try toggleKeys(from: "OpenSpoolVisibility.plist")
+        let openPrintTagKeys = try toggleKeys(from: "OpenPrintTagVisibility.plist")
+        let openTag3DKeys = try toggleKeys(from: "OpenTag3DVisibility.plist")
+        let anycubicKeys = try toggleKeys(from: "AnycubicACEVisibility.plist")
+
+        #expect(openSpoolKeys == Set([
+            AppConfig.visibilityNFCOpenSpoolNameKey,
+            AppConfig.visibilityNFCOpenSpoolSubtypeKey,
+            AppConfig.visibilityNFCOpenSpoolSpoolIDKey
+        ]))
+
+        #expect(openPrintTagKeys == Set([
+            AppConfig.visibilityNFCOpenPrintTagSpoolIDKey
+        ]))
+
+        #expect(openTag3DKeys == Set([
+            AppConfig.visibilityNFCOpenTag3DSubtypeKey,
+            AppConfig.visibilityNFCOpenTag3DNameKey
+        ]))
+
+        #expect(anycubicKeys.isEmpty)
+
+        let allNFCKeys = openSpoolKeys.union(openPrintTagKeys).union(openTag3DKeys).union(anycubicKeys)
+        let defaultKeys = Set(AppConfig.fieldVisibilityDefaults.keys)
+        #expect(allNFCKeys.isSubset(of: defaultKeys))
     }
 
     private func preferenceSpecifiers(from fileName: String) throws -> [[String: Any]] {
