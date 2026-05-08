@@ -14,6 +14,156 @@
 		<key>Type</key>
 		<string>PSToggleSwitchSpecifier</string>
 		<key>Title</key>
+		<string>Density</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_density</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Transmission Distance</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_transmission_distance</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Material Type</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_material_type</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>GTIN</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_gtin</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Manufactured Date</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_manufactured_date</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Country of Origin</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_country_of_origin</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Preheat Temperature</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_preheat_temp</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Drying Temperature</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_drying_temp</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Drying Time</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_drying_time</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Nominal Weight</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_nominal_weight</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Actual Weight</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_actual_weight</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Empty Container</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_empty_container_weight</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Material Tags</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_tags</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Certifications</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_certifications</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Tag URL</string>
+		<key>Key</key>
+		<string>visibility_nfc_opt_url</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
 		<string>Spool ID</string>
 		<key>Key</key>
 		<string>visibility_nfc_opt_spool_id</string>

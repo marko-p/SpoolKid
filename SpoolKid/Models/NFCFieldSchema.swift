@@ -61,10 +61,25 @@ enum NFCFieldCatalog {
 
     static let openPrintTag: [NFCFieldDefinition] = [
         .init(id: "material", label: "Material", section: "Material", inputType: .text, isEssential: true, defaultVisible: true),
+        .init(id: "material_type", label: "Material Type", section: "Material", inputType: .picker, isEssential: false, defaultVisible: false),
         .init(id: "name", label: "Material Name", section: "Material", inputType: .text, isEssential: true, defaultVisible: true),
         .init(id: "brand", label: "Brand", section: "Material", inputType: .text, isEssential: true, defaultVisible: true),
         .init(id: "color_hex", label: "Color", section: "Material", inputType: .hexColor, isEssential: true, defaultVisible: true),
         .init(id: "temp_range", label: "Temperatures", section: "Printing", inputType: .temperatureRange, isEssential: true, defaultVisible: true),
+        .init(id: "density", label: "Density", section: "Material", inputType: .text, isEssential: false, defaultVisible: false),
+        .init(id: "transmission_distance", label: "Transmission Distance", section: "Material", inputType: .text, isEssential: false, defaultVisible: false),
+        .init(id: "gtin", label: "GTIN", section: "Material", inputType: .text, isEssential: false, defaultVisible: false),
+        .init(id: "manufactured_date", label: "Manufactured Date", section: "Material", inputType: .text, isEssential: false, defaultVisible: false),
+        .init(id: "country_of_origin", label: "Country Of Origin", section: "Material", inputType: .text, isEssential: false, defaultVisible: false),
+        .init(id: "preheat_temperature", label: "Preheat Temperature", section: "Printing", inputType: .integer, isEssential: false, defaultVisible: false),
+        .init(id: "drying_temperature", label: "Drying Temperature", section: "Printing", inputType: .integer, isEssential: false, defaultVisible: false),
+        .init(id: "drying_time", label: "Drying Time", section: "Printing", inputType: .integer, isEssential: false, defaultVisible: false),
+        .init(id: "nominal_netto_full_weight", label: "Nominal Weight", section: "Weight", inputType: .integer, isEssential: false, defaultVisible: false),
+        .init(id: "actual_netto_full_weight", label: "Actual Weight", section: "Weight", inputType: .integer, isEssential: false, defaultVisible: false),
+        .init(id: "empty_container_weight", label: "Empty Container", section: "Weight", inputType: .integer, isEssential: false, defaultVisible: false),
+        .init(id: "material_tags", label: "Material Tags", section: "Material", inputType: .multilineText, isEssential: false, defaultVisible: false),
+        .init(id: "certifications", label: "Certifications", section: "Material", inputType: .multilineText, isEssential: false, defaultVisible: false),
+        .init(id: "tag_url", label: "Tag URL", section: "NFC", inputType: .text, isEssential: false, defaultVisible: false),
         .init(id: "spool_id", label: "Spool ID", section: "Linked Data", inputType: .integer, isEssential: false, defaultVisible: false)
     ]
 

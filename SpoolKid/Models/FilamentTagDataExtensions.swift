@@ -46,7 +46,17 @@ extension FilamentTagData {
             maxNozzleTemp: maxNozzle,
             minBedTemp: minBed,
             maxBedTemp: maxBed,
-            spoolmanId: writeSpoolId ? spool.id : nil
+            spoolmanId: writeSpoolId ? spool.id : nil,
+            density: spool.filament.density,
+            openPrintTagMaterialTypeID: AppConfig.openPrintTagMaterialTypeID(
+                for: spool.filament.material ?? AppConfig.Defaults.material
+            ),
+            materialTags: OpenPrintTagInference.mergedMaterialTags(
+                existing: nil,
+                name: spool.filament.name,
+                material: spool.filament.material,
+                subtype: nil
+            )
         )
     }
 }

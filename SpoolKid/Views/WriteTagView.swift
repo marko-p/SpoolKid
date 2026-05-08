@@ -42,6 +42,22 @@ struct WriteTagView: View {
     @State private var maxBedTemp: Int = AppConfig.Defaults.maxBedTemp
     @State private var spoolmanId: Int? = nil
     @State private var spoolmanIdInput: String = ""
+    @State private var densityInput: String = ""
+    @State private var transmissionDistanceInput: String = ""
+    @State private var gtinInput: String = ""
+    @State private var includeManufacturedDate: Bool = false
+    @State private var manufacturedDate: Date = Date()
+    @State private var countryOfOriginInput: String = ""
+    @State private var preheatTempInput: String = ""
+    @State private var dryingTempInput: String = ""
+    @State private var dryingTimeInput: String = ""
+    @State private var nominalWeightInput: String = ""
+    @State private var actualWeightInput: String = ""
+    @State private var emptyContainerWeightInput: String = ""
+    @State private var selectedOpenPrintTagMaterialTypeID: Int?
+    @State private var selectedMaterialTagIDs: Set<Int> = []
+    @State private var selectedCertificationIDs: Set<Int> = []
+    @State private var tagURLInput: String = ""
     
     @State private var selectedSpoolId: Int?
     
@@ -54,6 +70,8 @@ struct WriteTagView: View {
     @State private var showCompatPicker = false
     @State private var incompatibleMaterial = ""
     @State private var pendingTagData: FilamentTagData? = nil
+    @State private var expandMaterialTags: Bool = false
+    @State private var expandCertifications: Bool = false
     
     var initialData: FilamentTagData?
     
@@ -90,19 +108,39 @@ struct WriteTagView: View {
             Section("Filament Details") {
                 // Material Type
                 if visibleFieldIDs.contains("material") {
-                    HStack {
-                        Text("Material")
-                            .frame(width: 80, alignment: .leading)
-                        TextField("Type", text: $material)
-                        Menu {
-                            ForEach(availableMaterials, id: \.self) { mat in
-                                Button(mat) {
-                                    material = mat
+                    if selectedFormatOverride == .openPrintTag {
+                        Picker("Material", selection: Binding<Int>(
+                            get: {
+                                selectedOpenPrintTagMaterialTypeID
+                                ?? AppConfig.openPrintTagMaterialTypeID(for: material)
+                                ?? 0
+                            },
+                            set: { newID in
+                                selectedOpenPrintTagMaterialTypeID = newID
+                                if let mapped = AppConfig.openPrintTagMaterialTypes[newID] {
+                                    material = mapped
                                 }
                             }
-                        } label: {
-                        Image(systemName: "chevron.down.circle")
-                                .foregroundColor(.accentColor)
+                        )) {
+                            ForEach(AppConfig.openPrintTagMaterialTypes.keys.sorted(), id: \.self) { key in
+                                Text(AppConfig.openPrintTagMaterialTypes[key] ?? "\(key)").tag(key)
+                            }
+                        }
+                    } else {
+                        HStack {
+                            Text("Material")
+                                .frame(width: 80, alignment: .leading)
+                            TextField("Type", text: $material)
+                            Menu {
+                                ForEach(availableMaterials, id: \.self) { mat in
+                                    Button(mat) {
+                                        material = mat
+                                    }
+                                }
+                            } label: {
+                            Image(systemName: "chevron.down.circle")
+                                    .foregroundColor(.accentColor)
+                            }
                         }
                     }
                 }
@@ -177,8 +215,11 @@ struct WriteTagView: View {
                     }
                 }
                 
-                // Filament Name — hidden when U1 compat is active (replaced by Variant)
-                if visibleFieldIDs.contains("name") && !isU1CompatActive {
+                if WriteTagFormAssembler.shouldShowNameField(
+                    format: selectedFormatOverride,
+                    visibleFieldIDs: visibleFieldIDs,
+                    isU1CompatActive: isU1CompatActive
+                ) {
                     HStack {
                         Text("Name")
                             .frame(width: 80, alignment: .leading)
@@ -232,6 +273,236 @@ struct WriteTagView: View {
                         Stepper("", value: $maxBedTemp, in: 0...150)
                             .labelsHidden()
                     }
+                }
+            }
+
+            if selectedFormatOverride == .openPrintTag {
+                Section("OpenPrintTag Optional") {
+                    if visibleFieldIDs.contains("density") {
+                        HStack {
+                            Text("Density")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("g/cm3", text: $densityInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("transmission_distance") {
+                        HStack {
+                            Text("Trans. Dist")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("HueForge TD", text: $transmissionDistanceInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("gtin") {
+                        HStack {
+                            Text("GTIN")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("8/12/13/14 digits", text: $gtinInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("manufactured_date") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Toggle("Include Mfg Date", isOn: $includeManufacturedDate)
+
+                            if includeManufacturedDate {
+                                DatePicker(
+                                    "Mfg Date",
+                                    selection: $manufacturedDate,
+                                    displayedComponents: .date
+                                )
+                                .datePickerStyle(.compact)
+                            }
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("country_of_origin") {
+                        HStack {
+                            Text("Origin")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("ISO-2", text: $countryOfOriginInput)
+                                .textInputAutocapitalization(.characters)
+                                .disableAutocorrection(true)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("preheat_temperature") {
+                        HStack {
+                            Text("Preheat")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("°C", text: $preheatTempInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("drying_temperature") {
+                        HStack {
+                            Text("Drying Temp")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("°C", text: $dryingTempInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("drying_time") {
+                        HStack {
+                            Text("Drying Time")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("minutes", text: $dryingTimeInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("nominal_netto_full_weight") {
+                        HStack {
+                            Text("Nominal W")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("grams", text: $nominalWeightInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("actual_netto_full_weight") {
+                        HStack {
+                            Text("Actual W")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("grams", text: $actualWeightInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("empty_container_weight") {
+                        HStack {
+                            Text("Container W")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("grams", text: $emptyContainerWeightInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("material_tags") {
+                        DisclosureGroup(isExpanded: $expandMaterialTags) {
+                            Text("Selected: \(selectedMaterialTagIDs.count)/16")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            ForEach(AppConfig.openPrintTagMaterialTagGroups, id: \.title) { group in
+                                DisclosureGroup(group.title) {
+                                    ForEach(group.ids, id: \.self) { tagID in
+                                        if let tagLabel = AppConfig.openPrintTagMaterialTags[tagID] {
+                                            Toggle(
+                                                tagLabel,
+                                                isOn: Binding(
+                                                    get: { selectedMaterialTagIDs.contains(tagID) },
+                                                    set: { isSelected in
+                                                        if isSelected {
+                                                            if selectedMaterialTagIDs.count < 16 {
+                                                                selectedMaterialTagIDs.insert(tagID)
+                                                            }
+                                                        } else {
+                                                            selectedMaterialTagIDs.remove(tagID)
+                                                        }
+                                                    }
+                                                )
+                                            )
+                                            .disabled(!selectedMaterialTagIDs.contains(tagID) && selectedMaterialTagIDs.count >= 16)
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text("Material Tags")
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text("\(selectedMaterialTagIDs.count)/16")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("certifications") {
+                        DisclosureGroup(isExpanded: $expandCertifications) {
+                            if AppConfig.openPrintTagCertificationGroups.isEmpty {
+                                ForEach(AppConfig.openPrintTagCertifications.keys.sorted(), id: \.self) { certID in
+                                    if let certLabel = AppConfig.openPrintTagCertifications[certID] {
+                                        Toggle(
+                                            certLabel,
+                                            isOn: Binding(
+                                                get: { selectedCertificationIDs.contains(certID) },
+                                                set: { isSelected in
+                                                    if isSelected {
+                                                        selectedCertificationIDs.insert(certID)
+                                                    } else {
+                                                        selectedCertificationIDs.remove(certID)
+                                                    }
+                                                }
+                                            )
+                                        )
+                                    }
+                                }
+                            } else {
+                                ForEach(AppConfig.openPrintTagCertificationGroups, id: \.title) { group in
+                                    DisclosureGroup(group.title) {
+                                        ForEach(group.ids, id: \.self) { certID in
+                                            if let certLabel = AppConfig.openPrintTagCertifications[certID] {
+                                                Toggle(
+                                                    certLabel,
+                                                    isOn: Binding(
+                                                        get: { selectedCertificationIDs.contains(certID) },
+                                                        set: { isSelected in
+                                                            if isSelected {
+                                                                selectedCertificationIDs.insert(certID)
+                                                            } else {
+                                                                selectedCertificationIDs.remove(certID)
+                                                            }
+                                                        }
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text("Certifications")
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text("\(selectedCertificationIDs.count)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("tag_url") {
+                        HStack {
+                            Text("Tag URL")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("https://...", text: $tagURLInput)
+                                .keyboardType(.URL)
+                                .textInputAutocapitalization(.never)
+                                .disableAutocorrection(true)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
                 }
             }
             
@@ -335,6 +606,10 @@ struct WriteTagView: View {
                 populateFromData(data)
             }
         }
+        .onChange(of: selectedFormatOverride) { _, newValue in
+            guard newValue == .openPrintTag else { return }
+            applyOpenPrintTagAutoInference()
+        }
         .alert(isPresented: Binding<Bool>(
             get: { !nfcManager.alertMessage.isEmpty },
             set: { _ in nfcManager.alertMessage = "" }
@@ -389,6 +664,57 @@ struct WriteTagView: View {
         self.maxBedTemp = data.maxBedTemp
         self.spoolmanId = data.spoolmanId
         self.spoolmanIdInput = data.spoolmanId.map(String.init) ?? ""
+        self.densityInput = data.density.map { String($0) } ?? ""
+        self.transmissionDistanceInput = data.transmissionDistance.map { String($0) } ?? ""
+        self.gtinInput = data.gtin ?? ""
+        if let unix = data.manufacturedDateUnix,
+           let parsedDate = WriteTagFormAssembler.date(fromUnixSeconds: unix) {
+            self.includeManufacturedDate = true
+            self.manufacturedDate = parsedDate
+        } else {
+            self.includeManufacturedDate = false
+            self.manufacturedDate = Date()
+        }
+        self.countryOfOriginInput = data.countryOfOrigin ?? ""
+        self.preheatTempInput = data.preheatTemp.map(String.init) ?? ""
+        self.dryingTempInput = data.dryingTemp.map(String.init) ?? ""
+        self.dryingTimeInput = data.dryingTime.map(String.init) ?? ""
+        self.nominalWeightInput = data.nominalNetWeight.map { String($0) } ?? ""
+        self.actualWeightInput = data.actualNetWeight.map { String($0) } ?? ""
+        self.emptyContainerWeightInput = data.emptyContainerWeight.map { String($0) } ?? ""
+        self.selectedOpenPrintTagMaterialTypeID = data.openPrintTagMaterialTypeID
+        if selectedFormatOverride == .openPrintTag {
+            if let mappedID = data.openPrintTagMaterialTypeID,
+               let mappedMaterial = AppConfig.openPrintTagMaterialTypes[mappedID] {
+                self.material = mappedMaterial
+            } else if let mappedID = AppConfig.openPrintTagMaterialTypeID(for: self.material),
+                      let mappedMaterial = AppConfig.openPrintTagMaterialTypes[mappedID] {
+                self.selectedOpenPrintTagMaterialTypeID = mappedID
+                self.material = mappedMaterial
+            }
+        }
+        self.selectedMaterialTagIDs = Set((data.materialTags ?? []).filter { AppConfig.openPrintTagMaterialTags[$0] != nil }.prefix(16))
+        self.selectedCertificationIDs = Set((data.certifications ?? []).filter { AppConfig.openPrintTagCertifications[$0] != nil })
+        self.tagURLInput = data.tagURL ?? ""
+
+        if selectedFormatOverride == .openPrintTag {
+            applyOpenPrintTagAutoInference()
+        }
+    }
+
+    private func applyOpenPrintTagAutoInference() {
+        if let inferredDensity = initialData?.density, parseOptionalDouble(densityInput) == nil {
+            densityInput = String(inferredDensity)
+        }
+
+        let existing = Array(selectedMaterialTagIDs).sorted()
+        let merged = OpenPrintTagInference.mergedMaterialTags(
+            existing: existing,
+            name: name,
+            material: material,
+            subtype: subtype
+        )
+        selectedMaterialTagIDs = Set(merged)
     }
 
     private func updateSpoolmanId(from rawValue: String) {
@@ -433,7 +759,7 @@ struct WriteTagView: View {
     
     private func buildTagData() -> FilamentTagData {
         let resolvedName: String = if visibleFieldIDs.contains("name") {
-            isU1CompatActive ? "" : name
+            name
         } else {
             ""
         }
@@ -450,7 +776,7 @@ struct WriteTagView: View {
             nil
         }
 
-        return WriteTagFormAssembler.buildTagData(
+        var data = WriteTagFormAssembler.buildTagData(
             format: selectedFormatOverride,
             name: resolvedName,
             material: material,
@@ -464,8 +790,57 @@ struct WriteTagView: View {
             spoolmanId: resolvedSpoolmanID,
             writeSpoolID: writeSpoolId
         )
+
+        if selectedFormatOverride == .openPrintTag {
+            data.density = visibleFieldIDs.contains("density") ? parseOptionalDouble(densityInput) : nil
+            data.openPrintTagMaterialTypeID = AppConfig.openPrintTagMaterialTypeID(for: material)
+            data.transmissionDistance = visibleFieldIDs.contains("transmission_distance") ? parseOptionalDouble(transmissionDistanceInput) : nil
+            data.gtin = visibleFieldIDs.contains("gtin") ? parseOptionalString(gtinInput) : nil
+            data.manufacturedDateUnix = visibleFieldIDs.contains("manufactured_date") && includeManufacturedDate
+                ? WriteTagFormAssembler.unixSeconds(from: manufacturedDate)
+                : nil
+            data.countryOfOrigin = visibleFieldIDs.contains("country_of_origin") ? parseOptionalString(countryOfOriginInput)?.uppercased() : nil
+            data.preheatTemp = visibleFieldIDs.contains("preheat_temperature") ? parseOptionalInt(preheatTempInput) : nil
+            data.dryingTemp = visibleFieldIDs.contains("drying_temperature") ? parseOptionalInt(dryingTempInput) : nil
+            data.dryingTime = visibleFieldIDs.contains("drying_time") ? parseOptionalInt(dryingTimeInput) : nil
+            data.nominalNetWeight = visibleFieldIDs.contains("nominal_netto_full_weight") ? parseOptionalDouble(nominalWeightInput) : nil
+            data.actualNetWeight = visibleFieldIDs.contains("actual_netto_full_weight") ? parseOptionalDouble(actualWeightInput) : nil
+            data.emptyContainerWeight = visibleFieldIDs.contains("empty_container_weight") ? parseOptionalDouble(emptyContainerWeightInput) : nil
+            data.materialTags = visibleFieldIDs.contains("material_tags")
+                ? (selectedMaterialTagIDs.isEmpty ? nil : Array(selectedMaterialTagIDs).sorted().prefix(16).map { $0 })
+                : nil
+            data.certifications = visibleFieldIDs.contains("certifications")
+                ? (selectedCertificationIDs.isEmpty ? nil : Array(selectedCertificationIDs).sorted())
+                : nil
+            data.tagURL = visibleFieldIDs.contains("tag_url") ? parseOptionalURLString(tagURLInput) : nil
+        }
+
+        return data
     }
-    
+
+    private func parseOptionalString(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func parseOptionalInt(_ value: String) -> Int? {
+        guard let trimmed = parseOptionalString(value) else { return nil }
+        return Int(trimmed)
+    }
+
+    private func parseOptionalDouble(_ value: String) -> Double? {
+        guard let trimmed = parseOptionalString(value) else { return nil }
+        return Double(trimmed)
+    }
+
+    private func parseOptionalURLString(_ value: String) -> String? {
+        guard let trimmed = parseOptionalString(value) else { return nil }
+        guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) else {
+            return nil
+        }
+        return trimmed
+    }
+
     private func writeTag() {
         var data = buildTagData()
         

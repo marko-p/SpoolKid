@@ -13,6 +13,19 @@ enum WriteTagFormAssembler {
         return NFCFieldCatalog.fields(for: format).filter { visibleFieldIDs.contains($0.id) }
     }
 
+    static func shouldShowNameField(
+        format: TagFormat,
+        visibleFieldIDs: Set<String>,
+        isU1CompatActive: Bool
+    ) -> Bool {
+        guard visibleFieldIDs.contains("name") else { return false }
+        // Legacy U1 behavior previously hid name for OpenSpool.
+        // Visibility toggles now own this behavior; keep field visible when enabled.
+        _ = format
+        _ = isU1CompatActive
+        return true
+    }
+
     static func buildTagData(
         format: TagFormat,
         name: String,
@@ -61,5 +74,14 @@ enum WriteTagFormAssembler {
             maxBedTemp: maxBedTemp,
             spoolmanId: spoolIdToWrite
         )
+    }
+
+    static func unixSeconds(from date: Date) -> Int {
+        Int(date.timeIntervalSince1970.rounded())
+    }
+
+    static func date(fromUnixSeconds unix: Int) -> Date? {
+        guard unix >= 0 else { return nil }
+        return Date(timeIntervalSince1970: TimeInterval(unix))
     }
 }

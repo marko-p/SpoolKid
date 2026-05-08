@@ -44,6 +44,8 @@ import Combine
 // Internal mutable state (isWriting, tagDataToWrite) is protected by a serial queue.
 class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCTagReaderSessionDelegate {
 
+    private static let openPrintTagURLMIMEType = "text/plain"
+
     @Published var alertMessage = ""
     @Published var isScanning = false
     /// Structured result of the most recent scan. Emitted for every completed read.
@@ -270,11 +272,25 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
                     return
                 }
 
+                var discoveredOpenPrintTagURL: String?
+                for record in message.records {
+                    if let mimeType = self.getMimeType(from: record)?.lowercased(),
+                       mimeType == Self.openPrintTagURLMIMEType,
+                       let data = self.getPayloadData(from: record),
+                       let urlString = String(data: data, encoding: .utf8),
+                       !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        discoveredOpenPrintTagURL = urlString
+                    }
+                }
+
                 // Try to decode the NDEF payload
                 for record in message.records {
                     let mimeType = self.getMimeType(from: record)
                     if let data = self.getPayloadData(from: record),
-                       let decoded = TagFormatService.shared.decode(payload: data, mimeType: mimeType) {
+                       var decoded = TagFormatService.shared.decode(payload: data, mimeType: mimeType) {
+                        if let mimeType = mimeType?.lowercased(), mimeType == "application/vnd.openprinttag" {
+                            decoded.tagURL = discoveredOpenPrintTagURL
+                        }
                         let detectedFormat = self.detectedFormat(from: mimeType)
                         let result = ScanResult(
                             cardUID: probe.normalizedUID.isEmpty ? nil : probe.normalizedUID,
@@ -412,7 +428,15 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
             payload: payloadData
         )
 
-        let message = NFCNDEFMessage(records: [payload])
+        var records = [payload]
+        if format == .openPrintTag,
+           let tagURL = dataToWrite.tagURL,
+           !tagURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           let urlPayload = makeOpenPrintTagURLPayload(from: tagURL) {
+            records.insert(urlPayload, at: 0)
+        }
+
+        let message = NFCNDEFMessage(records: records)
 
         // Check tag capacity before writing
         let messageLength = message.length
@@ -585,6 +609,20 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
             dataEncrypted: false,
             normalizedUID: probe.normalizedUID,
             displayLabel: "Unknown tag format"
+        )
+    }
+
+    private func makeOpenPrintTagURLPayload(from urlString: String) -> NFCNDEFPayload? {
+        guard let encoded = urlString.data(using: .utf8),
+              let typeData = Self.openPrintTagURLMIMEType.data(using: .utf8) else {
+            return nil
+        }
+
+        return NFCNDEFPayload(
+            format: .media,
+            type: typeData,
+            identifier: Data(),
+            payload: encoded
         )
     }
 }

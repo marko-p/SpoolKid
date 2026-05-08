@@ -38,6 +38,21 @@ struct VisibilityDefaultsStructureTests {
         #expect(defaults[AppConfig.visibilityNFCOpenSpoolSubtypeKey] != nil)
         #expect(defaults[AppConfig.visibilityNFCOpenSpoolSpoolIDKey] != nil)
         #expect(defaults[AppConfig.visibilityNFCOpenPrintTagSpoolIDKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagDensityKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagTransmissionDistanceKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagMaterialTypeKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagGTINKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagManufacturedDateKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagCountryOfOriginKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagPreheatTempKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagDryingTempKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagDryingTimeKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagNominalWeightKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagActualWeightKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagEmptyContainerWeightKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagTagsKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagCertificationsKey] != nil)
+        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagURLKey] != nil)
         #expect(defaults[AppConfig.visibilityNFCOpenTag3DSubtypeKey] != nil)
         #expect(defaults[AppConfig.visibilityNFCOpenTag3DNameKey] != nil)
     }
@@ -114,6 +129,21 @@ struct VisibilityDefaultsStructureTests {
         ]))
 
         #expect(openPrintTagKeys == Set([
+            AppConfig.visibilityNFCOpenPrintTagDensityKey,
+            AppConfig.visibilityNFCOpenPrintTagTransmissionDistanceKey,
+            AppConfig.visibilityNFCOpenPrintTagMaterialTypeKey,
+            AppConfig.visibilityNFCOpenPrintTagGTINKey,
+            AppConfig.visibilityNFCOpenPrintTagManufacturedDateKey,
+            AppConfig.visibilityNFCOpenPrintTagCountryOfOriginKey,
+            AppConfig.visibilityNFCOpenPrintTagPreheatTempKey,
+            AppConfig.visibilityNFCOpenPrintTagDryingTempKey,
+            AppConfig.visibilityNFCOpenPrintTagDryingTimeKey,
+            AppConfig.visibilityNFCOpenPrintTagNominalWeightKey,
+            AppConfig.visibilityNFCOpenPrintTagActualWeightKey,
+            AppConfig.visibilityNFCOpenPrintTagEmptyContainerWeightKey,
+            AppConfig.visibilityNFCOpenPrintTagTagsKey,
+            AppConfig.visibilityNFCOpenPrintTagCertificationsKey,
+            AppConfig.visibilityNFCOpenPrintTagURLKey,
             AppConfig.visibilityNFCOpenPrintTagSpoolIDKey
         ]))
 

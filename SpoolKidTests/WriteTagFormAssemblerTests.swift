@@ -192,4 +192,44 @@ struct WriteTagFormAssemblerTests {
         #expect(!openSpoolFieldIDs.contains("subtype"))
         #expect(openPrintTagFieldIDs.contains("name"))
     }
+
+    @Test func openSpoolNameFieldRemainsVisibleWhenU1CompatEnabledIfVisibilityAllowsIt() {
+        let shouldShow = WriteTagFormAssembler.shouldShowNameField(
+            format: .openSpool,
+            visibleFieldIDs: ["name"],
+            isU1CompatActive: true
+        )
+
+        #expect(shouldShow)
+    }
+
+    @Test func nameFieldHidesWhenNotVisibleInFormatVisibility() {
+        let shouldShow = WriteTagFormAssembler.shouldShowNameField(
+            format: .openSpool,
+            visibleFieldIDs: [],
+            isU1CompatActive: false
+        )
+
+        #expect(!shouldShow)
+    }
+
+    @Test func dateUnixRoundTripPreservesDayPrecision() {
+        let calendar = Calendar(identifier: .gregorian)
+        let components = DateComponents(year: 2026, month: 5, day: 8, hour: 12, minute: 0, second: 0)
+        guard let sourceDate = calendar.date(from: components) else {
+            Issue.record("Failed to create source date")
+            return
+        }
+
+        let unix = WriteTagFormAssembler.unixSeconds(from: sourceDate)
+        guard let roundTrip = WriteTagFormAssembler.date(fromUnixSeconds: unix) else {
+            Issue.record("Failed to decode unix seconds")
+            return
+        }
+
+        let roundTripComponents = calendar.dateComponents([.year, .month, .day], from: roundTrip)
+        #expect(roundTripComponents.year == 2026)
+        #expect(roundTripComponents.month == 5)
+        #expect(roundTripComponents.day == 8)
+    }
 }
