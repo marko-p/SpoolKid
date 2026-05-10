@@ -26,6 +26,8 @@ struct WriteTagView: View {
     @AppStorage("write_spool_id") private var writeSpoolId: Bool = true
     @AppStorage("snapmaker_u1_compat") private var snapmakerU1Compat: Bool = false
     @AppStorage(AppConfig.nfcTagFormatKey) private var nfcTagFormat: String = TagFormat.openSpool.rawValue
+    @State private var selectedFormatOverride: TagFormat = .openSpool
+    private let nfcVisibilityStore = NFCFieldVisibilityStore()
     
     // Form Fields
     @State private var name: String = ""
@@ -40,6 +42,22 @@ struct WriteTagView: View {
     @State private var maxBedTemp: Int = AppConfig.Defaults.maxBedTemp
     @State private var spoolmanId: Int? = nil
     @State private var spoolmanIdInput: String = ""
+    @State private var densityInput: String = ""
+    @State private var transmissionDistanceInput: String = ""
+    @State private var gtinInput: String = ""
+    @State private var includeManufacturedDate: Bool = false
+    @State private var manufacturedDate: Date = Date()
+    @State private var countryOfOriginInput: String = ""
+    @State private var preheatTempInput: String = ""
+    @State private var dryingTempInput: String = ""
+    @State private var dryingTimeInput: String = ""
+    @State private var nominalWeightInput: String = ""
+    @State private var actualWeightInput: String = ""
+    @State private var emptyContainerWeightInput: String = ""
+    @State private var selectedOpenPrintTagMaterialTypeID: Int?
+    @State private var selectedMaterialTagIDs: Set<Int> = []
+    @State private var selectedCertificationIDs: Set<Int> = []
+    @State private var tagURLInput: String = ""
     
     @State private var selectedSpoolId: Int?
     
@@ -52,15 +70,24 @@ struct WriteTagView: View {
     @State private var showCompatPicker = false
     @State private var incompatibleMaterial = ""
     @State private var pendingTagData: FilamentTagData? = nil
+    @State private var expandMaterialTags: Bool = false
+    @State private var expandCertifications: Bool = false
     
     var initialData: FilamentTagData?
     
     let brands = AppConfig.brands
-    let subtypes = AppConfig.subtypes
     
     /// Derived property: is Snapmaker U1 compat active for the current format?
     private var isU1CompatActive: Bool {
-        snapmakerU1Compat && nfcTagFormat == TagFormat.openSpool.rawValue
+        snapmakerU1Compat && selectedFormatOverride == .openSpool
+    }
+
+    private var visibleFieldDefinitions: [NFCFieldDefinition] {
+        WriteTagFormAssembler.visibleFields(format: selectedFormatOverride, visibilityStore: nfcVisibilityStore)
+    }
+
+    private var visibleFieldIDs: Set<String> {
+        Set(visibleFieldDefinitions.map(\.id))
     }
     
     /// When Snapmaker U1 compat is enabled (and format is OpenSpool), show only U1-compatible materials.
@@ -70,74 +97,129 @@ struct WriteTagView: View {
     
     var body: some View {
         Form {
+            Section("Tag Format") {
+                Picker("Format", selection: $selectedFormatOverride) {
+                    ForEach(TagFormat.allCases) { format in
+                        Text(format.displayName).tag(format)
+                    }
+                }
+            }
+
             Section("Filament Details") {
                 // Material Type
-                HStack {
-                    Text("Material")
-                        .frame(width: 80, alignment: .leading)
-                    TextField("Type", text: $material)
-                    Menu {
-                        ForEach(availableMaterials, id: \.self) { mat in
-                            Button(mat) {
-                                material = mat
+                if visibleFieldIDs.contains("material") {
+                    if selectedFormatOverride == .openPrintTag {
+                        Picker("Material", selection: Binding<Int>(
+                            get: {
+                                selectedOpenPrintTagMaterialTypeID
+                                ?? AppConfig.openPrintTagMaterialTypeID(for: material)
+                                ?? 0
+                            },
+                            set: { newID in
+                                selectedOpenPrintTagMaterialTypeID = newID
+                                if let mapped = AppConfig.openPrintTagMaterialTypes[newID] {
+                                    material = mapped
+                                }
+                            }
+                        )) {
+                            ForEach(AppConfig.openPrintTagMaterialTypes.keys.sorted(), id: \.self) { key in
+                                Text(AppConfig.openPrintTagMaterialTypes[key] ?? "\(key)").tag(key)
                             }
                         }
-                    } label: {
-                    Image(systemName: "chevron.down.circle")
-                            .foregroundColor(.accentColor)
+                    } else {
+                        HStack {
+                            Text("Material")
+                                .frame(width: 80, alignment: .leading)
+                            TextField("Type", text: $material)
+                            Menu {
+                                ForEach(availableMaterials, id: \.self) { mat in
+                                    Button(mat) {
+                                        material = mat
+                                    }
+                                }
+                            } label: {
+                            Image(systemName: "chevron.down.circle")
+                                    .foregroundColor(.accentColor)
+                            }
+                        }
                     }
                 }
                 
                 // Color
-                HStack {
-                    Text("Color")
-                        .frame(width: 80, alignment: .leading)
-                    
-                    TextField("Hex", text: $colorHex)
-                        .onChange(of: colorHex) { _, newValue in
-                            if let newColor = Color(hex: newValue) {
-                                color = newColor
+                if visibleFieldIDs.contains("color_hex") {
+                    HStack {
+                        Text("Color")
+                            .frame(width: 80, alignment: .leading)
+                        
+                        TextField("Hex", text: $colorHex)
+                            .onChange(of: colorHex) { _, newValue in
+                                if let newColor = Color(hex: newValue) {
+                                    color = newColor
+                                    bounceColorSwatch()
+                                }
+                            }
+                            .textInputAutocapitalization(.characters)
+                            .disableAutocorrection(true)
+                        
+                        Circle()
+                            .fill(color)
+                            .frame(width: 28, height: 28)
+                            .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
+                            .scaleEffect(colorSwatchScale)
+                        
+                        ColorPicker("", selection: $color)
+                            .labelsHidden()
+                            .onChange(of: color) { _, newColor in
+                                if let hex = newColor.toHex() {
+                                    colorHex = hex
+                                }
                                 bounceColorSwatch()
                             }
-                        }
-                        .textInputAutocapitalization(.characters)
-                        .disableAutocorrection(true)
-                    
-                    Circle()
-                        .fill(color)
-                        .frame(width: 28, height: 28)
-                        .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
-                        .scaleEffect(colorSwatchScale)
-                    
-                    ColorPicker("", selection: $color)
-                        .labelsHidden()
-                        .onChange(of: color) { _, newColor in
-                            if let hex = newColor.toHex() {
-                                colorHex = hex
-                            }
-                            bounceColorSwatch()
-                        }
-                }
-                
-                // Brand Name
-                HStack {
-                    Text("Brand")
-                        .frame(width: 80, alignment: .leading)
-                    TextField("Brand Name", text: $brand)
-                    Menu {
-                        ForEach(brands, id: \.self) { b in
-                            Button(b) {
-                                brand = b
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "chevron.down.circle")
-                            .foregroundColor(.accentColor)
                     }
                 }
                 
-                // Filament Name — hidden when U1 compat is active (replaced by Variant)
-                if !isU1CompatActive {
+                // Brand Name
+                if visibleFieldIDs.contains("brand") {
+                    HStack {
+                        Text("Brand")
+                            .frame(width: 80, alignment: .leading)
+                        TextField("Brand Name", text: $brand)
+                        Menu {
+                            ForEach(brands, id: \.self) { b in
+                                Button(b) {
+                                    brand = b
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "chevron.down.circle")
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                }
+
+                if visibleFieldIDs.contains("subtype") {
+                    HStack {
+                        Text("Subtype")
+                            .frame(width: 80, alignment: .leading)
+                        TextField("Subtype", text: $subtype)
+                        Menu {
+                            ForEach(SubtypeOptionService.presetOptions, id: \.self) { option in
+                                Button(option) {
+                                    subtype = option
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "chevron.down.circle")
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                }
+                
+                if WriteTagFormAssembler.shouldShowNameField(
+                    format: selectedFormatOverride,
+                    visibleFieldIDs: visibleFieldIDs,
+                    isU1CompatActive: isU1CompatActive
+                ) {
                     HStack {
                         Text("Name")
                             .frame(width: 80, alignment: .leading)
@@ -146,53 +228,286 @@ struct WriteTagView: View {
                 }
             }
             
-            Section("Printing Parameters") {
-                HStack {
-                    Text("Min Nozzle")
-                    Spacer()
-                    TextField("°C", value: $minNozzleTemp, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 50)
-                    Stepper("", value: $minNozzleTemp, in: 0...400)
-                        .labelsHidden()
+            if visibleFieldIDs.contains("temp_range") {
+                Section("Printing Parameters") {
+                    HStack {
+                        Text("Min Nozzle")
+                        Spacer()
+                        TextField("°C", value: $minNozzleTemp, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 50)
+                        Stepper("", value: $minNozzleTemp, in: 0...400)
+                            .labelsHidden()
+                    }
+                    
+                    HStack {
+                        Text("Max Nozzle")
+                        Spacer()
+                        TextField("°C", value: $maxNozzleTemp, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 50)
+                        Stepper("", value: $maxNozzleTemp, in: 0...400)
+                            .labelsHidden()
+                    }
+                    
+                    HStack {
+                        Text("Min Bed")
+                        Spacer()
+                        TextField("°C", value: $minBedTemp, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 50)
+                        Stepper("", value: $minBedTemp, in: 0...150)
+                            .labelsHidden()
+                    }
+                    
+                    HStack {
+                        Text("Max Bed")
+                        Spacer()
+                        TextField("°C", value: $maxBedTemp, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 50)
+                        Stepper("", value: $maxBedTemp, in: 0...150)
+                            .labelsHidden()
+                    }
                 }
-                
-                HStack {
-                    Text("Max Nozzle")
-                    Spacer()
-                    TextField("°C", value: $maxNozzleTemp, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 50)
-                    Stepper("", value: $maxNozzleTemp, in: 0...400)
-                        .labelsHidden()
-                }
-                
-                HStack {
-                    Text("Min Bed")
-                    Spacer()
-                    TextField("°C", value: $minBedTemp, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 50)
-                    Stepper("", value: $minBedTemp, in: 0...150)
-                        .labelsHidden()
-                }
-                
-                HStack {
-                    Text("Max Bed")
-                    Spacer()
-                    TextField("°C", value: $maxBedTemp, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 50)
-                    Stepper("", value: $maxBedTemp, in: 0...150)
-                        .labelsHidden()
+            }
+
+            if selectedFormatOverride == .openPrintTag {
+                Section("OpenPrintTag Optional") {
+                    if visibleFieldIDs.contains("density") {
+                        HStack {
+                            Text("Density")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("g/cm3", text: $densityInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("transmission_distance") {
+                        HStack {
+                            Text("Trans. Dist")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("HueForge TD", text: $transmissionDistanceInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("gtin") {
+                        HStack {
+                            Text("GTIN")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("8/12/13/14 digits", text: $gtinInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("manufactured_date") {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Toggle("Include Mfg Date", isOn: $includeManufacturedDate)
+
+                            if includeManufacturedDate {
+                                DatePicker(
+                                    "Mfg Date",
+                                    selection: $manufacturedDate,
+                                    displayedComponents: .date
+                                )
+                                .datePickerStyle(.compact)
+                            }
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("country_of_origin") {
+                        HStack {
+                            Text("Origin")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("ISO-2", text: $countryOfOriginInput)
+                                .textInputAutocapitalization(.characters)
+                                .disableAutocorrection(true)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("preheat_temperature") {
+                        HStack {
+                            Text("Preheat")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("°C", text: $preheatTempInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("drying_temperature") {
+                        HStack {
+                            Text("Drying Temp")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("°C", text: $dryingTempInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("drying_time") {
+                        HStack {
+                            Text("Drying Time")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("minutes", text: $dryingTimeInput)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("nominal_netto_full_weight") {
+                        HStack {
+                            Text("Nominal W")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("grams", text: $nominalWeightInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("actual_netto_full_weight") {
+                        HStack {
+                            Text("Actual W")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("grams", text: $actualWeightInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("empty_container_weight") {
+                        HStack {
+                            Text("Container W")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("grams", text: $emptyContainerWeightInput)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("material_tags") {
+                        DisclosureGroup(isExpanded: $expandMaterialTags) {
+                            Text("Selected: \(selectedMaterialTagIDs.count)/16")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            ForEach(AppConfig.openPrintTagMaterialTagGroups, id: \.title) { group in
+                                DisclosureGroup(group.title) {
+                                    ForEach(group.ids, id: \.self) { tagID in
+                                        if let tagLabel = AppConfig.openPrintTagMaterialTags[tagID] {
+                                            Toggle(
+                                                tagLabel,
+                                                isOn: Binding(
+                                                    get: { selectedMaterialTagIDs.contains(tagID) },
+                                                    set: { isSelected in
+                                                        if isSelected {
+                                                            if selectedMaterialTagIDs.count < 16 {
+                                                                selectedMaterialTagIDs.insert(tagID)
+                                                            }
+                                                        } else {
+                                                            selectedMaterialTagIDs.remove(tagID)
+                                                        }
+                                                    }
+                                                )
+                                            )
+                                            .disabled(!selectedMaterialTagIDs.contains(tagID) && selectedMaterialTagIDs.count >= 16)
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text("Material Tags")
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text("\(selectedMaterialTagIDs.count)/16")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("certifications") {
+                        DisclosureGroup(isExpanded: $expandCertifications) {
+                            if AppConfig.openPrintTagCertificationGroups.isEmpty {
+                                ForEach(AppConfig.openPrintTagCertifications.keys.sorted(), id: \.self) { certID in
+                                    if let certLabel = AppConfig.openPrintTagCertifications[certID] {
+                                        Toggle(
+                                            certLabel,
+                                            isOn: Binding(
+                                                get: { selectedCertificationIDs.contains(certID) },
+                                                set: { isSelected in
+                                                    if isSelected {
+                                                        selectedCertificationIDs.insert(certID)
+                                                    } else {
+                                                        selectedCertificationIDs.remove(certID)
+                                                    }
+                                                }
+                                            )
+                                        )
+                                    }
+                                }
+                            } else {
+                                ForEach(AppConfig.openPrintTagCertificationGroups, id: \.title) { group in
+                                    DisclosureGroup(group.title) {
+                                        ForEach(group.ids, id: \.self) { certID in
+                                            if let certLabel = AppConfig.openPrintTagCertifications[certID] {
+                                                Toggle(
+                                                    certLabel,
+                                                    isOn: Binding(
+                                                        get: { selectedCertificationIDs.contains(certID) },
+                                                        set: { isSelected in
+                                                            if isSelected {
+                                                                selectedCertificationIDs.insert(certID)
+                                                            } else {
+                                                                selectedCertificationIDs.remove(certID)
+                                                            }
+                                                        }
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text("Certifications")
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text("\(selectedCertificationIDs.count)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("tag_url") {
+                        HStack {
+                            Text("Tag URL")
+                                .frame(width: 100, alignment: .leading)
+                            TextField("https://...", text: $tagURLInput)
+                                .keyboardType(.URL)
+                                .textInputAutocapitalization(.never)
+                                .disableAutocorrection(true)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
                 }
             }
             
-            Section("Linked Data") {
+            if visibleFieldIDs.contains("spool_id") {
+                Section("Linked Data") {
                 HStack {
                     Text("Spoolman ID")
                         .frame(width: 100, alignment: .leading)
@@ -220,6 +535,7 @@ struct WriteTagView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+            }
             }
 
         }
@@ -285,9 +601,14 @@ struct WriteTagView: View {
             }
         }
         .onAppear {
+            selectedFormatOverride = WriteTagFormAssembler.initialOverride(defaultRawValue: nfcTagFormat)
             if let data = initialData {
                 populateFromData(data)
             }
+        }
+        .onChange(of: selectedFormatOverride) { _, newValue in
+            guard newValue == .openPrintTag else { return }
+            applyOpenPrintTagAutoInference()
         }
         .alert(isPresented: Binding<Bool>(
             get: { !nfcManager.alertMessage.isEmpty },
@@ -302,7 +623,7 @@ struct WriteTagView: View {
                 onSelect: { selectedMaterial in
                     if var data = pendingTagData {
                         data.material = selectedMaterial
-                        nfcManager.writeTag(data: data)
+                        nfcManager.writeTag(data: data, format: selectedFormatOverride)
                     }
                     showCompatPicker = false
                 },
@@ -343,6 +664,57 @@ struct WriteTagView: View {
         self.maxBedTemp = data.maxBedTemp
         self.spoolmanId = data.spoolmanId
         self.spoolmanIdInput = data.spoolmanId.map(String.init) ?? ""
+        self.densityInput = data.density.map { String($0) } ?? ""
+        self.transmissionDistanceInput = data.transmissionDistance.map { String($0) } ?? ""
+        self.gtinInput = data.gtin ?? ""
+        if let unix = data.manufacturedDateUnix,
+           let parsedDate = WriteTagFormAssembler.date(fromUnixSeconds: unix) {
+            self.includeManufacturedDate = true
+            self.manufacturedDate = parsedDate
+        } else {
+            self.includeManufacturedDate = false
+            self.manufacturedDate = Date()
+        }
+        self.countryOfOriginInput = data.countryOfOrigin ?? ""
+        self.preheatTempInput = data.preheatTemp.map(String.init) ?? ""
+        self.dryingTempInput = data.dryingTemp.map(String.init) ?? ""
+        self.dryingTimeInput = data.dryingTime.map(String.init) ?? ""
+        self.nominalWeightInput = data.nominalNetWeight.map { String($0) } ?? ""
+        self.actualWeightInput = data.actualNetWeight.map { String($0) } ?? ""
+        self.emptyContainerWeightInput = data.emptyContainerWeight.map { String($0) } ?? ""
+        self.selectedOpenPrintTagMaterialTypeID = data.openPrintTagMaterialTypeID
+        if selectedFormatOverride == .openPrintTag {
+            if let mappedID = data.openPrintTagMaterialTypeID,
+               let mappedMaterial = AppConfig.openPrintTagMaterialTypes[mappedID] {
+                self.material = mappedMaterial
+            } else if let mappedID = AppConfig.openPrintTagMaterialTypeID(for: self.material),
+                      let mappedMaterial = AppConfig.openPrintTagMaterialTypes[mappedID] {
+                self.selectedOpenPrintTagMaterialTypeID = mappedID
+                self.material = mappedMaterial
+            }
+        }
+        self.selectedMaterialTagIDs = Set((data.materialTags ?? []).filter { AppConfig.openPrintTagMaterialTags[$0] != nil }.prefix(16))
+        self.selectedCertificationIDs = Set((data.certifications ?? []).filter { AppConfig.openPrintTagCertifications[$0] != nil })
+        self.tagURLInput = data.tagURL ?? ""
+
+        if selectedFormatOverride == .openPrintTag {
+            applyOpenPrintTagAutoInference()
+        }
+    }
+
+    private func applyOpenPrintTagAutoInference() {
+        if let inferredDensity = initialData?.density, parseOptionalDouble(densityInput) == nil {
+            densityInput = String(inferredDensity)
+        }
+
+        let existing = Array(selectedMaterialTagIDs).sorted()
+        let merged = OpenPrintTagInference.mergedMaterialTags(
+            existing: existing,
+            name: name,
+            material: material,
+            subtype: subtype
+        )
+        selectedMaterialTagIDs = Set(merged)
     }
 
     private func updateSpoolmanId(from rawValue: String) {
@@ -386,45 +758,89 @@ struct WriteTagView: View {
     }
     
     private func buildTagData() -> FilamentTagData {
-        let currentFormat = TagFormat(rawValue: nfcTagFormat) ?? .openSpool
-        
-        // Determine subtype and name based on format + settings
-        let subtypeToWrite: String?
-        let nameToWrite: String?
-        
-        switch currentFormat {
-        case .openSpool:
-            // U1 compat ON: write variant, omit name. U1 compat OFF: write name, omit variant.
-            subtypeToWrite = (isU1CompatActive && !subtype.isEmpty && subtype != "None") ? subtype : nil
-            nameToWrite = (!isU1CompatActive && !name.isEmpty) ? name : nil
-        case .openTag3D:
-            // OpenTag3D supports both material_mod (subtype) and color_name (name)
-            subtypeToWrite = (!subtype.isEmpty && subtype != "None") ? subtype : nil
-            nameToWrite = !name.isEmpty ? name : nil
-        case .openPrintTag:
-            // OpenPrintTag uses material_name (name), no subtype
-            subtypeToWrite = nil
-            nameToWrite = !name.isEmpty ? name : nil
-        case .anycubicACE:
-            // ACE uses SKU (name), no subtype
-            subtypeToWrite = nil
-            nameToWrite = !name.isEmpty ? name : nil
+        let resolvedName: String = if visibleFieldIDs.contains("name") {
+            name
+        } else {
+            ""
         }
-        
-        return FilamentTagData(
-            name: nameToWrite,
+
+        let resolvedSubtype: String = if visibleFieldIDs.contains("subtype") {
+            SubtypeOptionService.resolve(userInput: subtype)
+        } else {
+            ""
+        }
+
+        let resolvedSpoolmanID: Int? = if visibleFieldIDs.contains("spool_id") {
+            spoolmanId
+        } else {
+            nil
+        }
+
+        var data = WriteTagFormAssembler.buildTagData(
+            format: selectedFormatOverride,
+            name: resolvedName,
             material: material,
-            subtype: subtypeToWrite,
+            subtype: resolvedSubtype,
             brand: brand,
             colorHex: colorHex,
             minNozzleTemp: minNozzleTemp,
             maxNozzleTemp: maxNozzleTemp,
             minBedTemp: minBedTemp,
             maxBedTemp: maxBedTemp,
-            spoolmanId: writeSpoolId ? spoolmanId : nil
+            spoolmanId: resolvedSpoolmanID,
+            writeSpoolID: writeSpoolId
         )
+
+        if selectedFormatOverride == .openPrintTag {
+            data.density = visibleFieldIDs.contains("density") ? parseOptionalDouble(densityInput) : nil
+            data.openPrintTagMaterialTypeID = AppConfig.openPrintTagMaterialTypeID(for: material)
+            data.transmissionDistance = visibleFieldIDs.contains("transmission_distance") ? parseOptionalDouble(transmissionDistanceInput) : nil
+            data.gtin = visibleFieldIDs.contains("gtin") ? parseOptionalString(gtinInput) : nil
+            data.manufacturedDateUnix = visibleFieldIDs.contains("manufactured_date") && includeManufacturedDate
+                ? WriteTagFormAssembler.unixSeconds(from: manufacturedDate)
+                : nil
+            data.countryOfOrigin = visibleFieldIDs.contains("country_of_origin") ? parseOptionalString(countryOfOriginInput)?.uppercased() : nil
+            data.preheatTemp = visibleFieldIDs.contains("preheat_temperature") ? parseOptionalInt(preheatTempInput) : nil
+            data.dryingTemp = visibleFieldIDs.contains("drying_temperature") ? parseOptionalInt(dryingTempInput) : nil
+            data.dryingTime = visibleFieldIDs.contains("drying_time") ? parseOptionalInt(dryingTimeInput) : nil
+            data.nominalNetWeight = visibleFieldIDs.contains("nominal_netto_full_weight") ? parseOptionalDouble(nominalWeightInput) : nil
+            data.actualNetWeight = visibleFieldIDs.contains("actual_netto_full_weight") ? parseOptionalDouble(actualWeightInput) : nil
+            data.emptyContainerWeight = visibleFieldIDs.contains("empty_container_weight") ? parseOptionalDouble(emptyContainerWeightInput) : nil
+            data.materialTags = visibleFieldIDs.contains("material_tags")
+                ? (selectedMaterialTagIDs.isEmpty ? nil : Array(selectedMaterialTagIDs).sorted().prefix(16).map { $0 })
+                : nil
+            data.certifications = visibleFieldIDs.contains("certifications")
+                ? (selectedCertificationIDs.isEmpty ? nil : Array(selectedCertificationIDs).sorted())
+                : nil
+            data.tagURL = visibleFieldIDs.contains("tag_url") ? parseOptionalURLString(tagURLInput) : nil
+        }
+
+        return data
     }
-    
+
+    private func parseOptionalString(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func parseOptionalInt(_ value: String) -> Int? {
+        guard let trimmed = parseOptionalString(value) else { return nil }
+        return Int(trimmed)
+    }
+
+    private func parseOptionalDouble(_ value: String) -> Double? {
+        guard let trimmed = parseOptionalString(value) else { return nil }
+        return Double(trimmed)
+    }
+
+    private func parseOptionalURLString(_ value: String) -> String? {
+        guard let trimmed = parseOptionalString(value) else { return nil }
+        guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) else {
+            return nil
+        }
+        return trimmed
+    }
+
     private func writeTag() {
         var data = buildTagData()
         
@@ -446,7 +862,7 @@ struct WriteTagView: View {
             }
         }
         
-        nfcManager.writeTag(data: data)
+        nfcManager.writeTag(data: data, format: selectedFormatOverride)
     }
     
     private func triggerWriteSuccess() {
