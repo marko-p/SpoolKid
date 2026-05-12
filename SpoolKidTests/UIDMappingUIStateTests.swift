@@ -3,10 +3,44 @@
 //  SpoolKidTests
 //
 
+import Foundation
 import Testing
 @testable import SpoolKid
 
 struct UIDMappingUIStateTests {
+    @Test func unknownRawByteExportVisibleOnlyWhenUnknownWithBytes() {
+        #expect(
+            ScanResultHubView.shouldShowUnknownRawByteExport(
+                isUnknownFormat: true,
+                rawPageLogBytes: [0x01, 0x02]
+            )
+        )
+        #expect(
+            !ScanResultHubView.shouldShowUnknownRawByteExport(
+                isUnknownFormat: true,
+                rawPageLogBytes: []
+            )
+        )
+        #expect(
+            !ScanResultHubView.shouldShowUnknownRawByteExport(
+                isUnknownFormat: false,
+                rawPageLogBytes: [0x01]
+            )
+        )
+    }
+
+    @Test func unknownRawByteExportIncludesUIDAndUppercaseHex() {
+        let text = ScanResultHubView.unknownRawByteExportText(
+            rawPageLogBytes: [0x0A, 0xBC, 0x00],
+            cardUID: "045d7774ce2a81",
+            timestamp: Date(timeIntervalSince1970: 0)
+        )
+
+        #expect(text.contains("\"uid\":\"045d7774ce2a81\""))
+        #expect(text.contains("\"bytesHex\":\"0ABC00\""))
+        #expect(text.contains("\"bytesPerPage\":4"))
+    }
+
     @Test func scanHubDisablesSaveActionWhenMappingSettingIsOff() {
         let state = ScanResultHubView.uidMappingActionState(
             persistCardUID: false,
@@ -116,11 +150,11 @@ struct UIDMappingUIStateTests {
         #expect(state == .unavailable)
     }
 
-    @Test func encryptedTagUsesUIDOnlyCreateFlow() {
+    @Test func unknownTagUsesUIDOnlyCreateFlow() {
         let action = ScanResultHubView.secondaryCreateAction(
             tagDataAvailable: false,
             showCreateSpool: false,
-            showUIDActionsForEncryptedTag: true
+            showUIDActionsForUnknownTag: true
         )
 
         #expect(action == .uidOnly)
@@ -130,7 +164,7 @@ struct UIDMappingUIStateTests {
         let action = ScanResultHubView.secondaryCreateAction(
             tagDataAvailable: true,
             showCreateSpool: true,
-            showUIDActionsForEncryptedTag: false
+            showUIDActionsForUnknownTag: false
         )
 
         #expect(action == .bestMatch)

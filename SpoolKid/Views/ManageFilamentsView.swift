@@ -139,10 +139,14 @@ struct ManageFilamentsView: View {
             }
         }
         .sheet(isPresented: $showingAddSheet) {
-            FilamentFormView(service: spoolManService, baseUrl: spoolmanUrl)
+            NavigationStack {
+                FilamentFormView(service: spoolManService, baseUrl: spoolmanUrl)
+            }
         }
         .sheet(item: $filamentToEdit) { filament in
-            FilamentFormView(service: spoolManService, baseUrl: spoolmanUrl, filamentToEdit: filament)
+            NavigationStack {
+                FilamentFormView(service: spoolManService, baseUrl: spoolmanUrl, filamentToEdit: filament)
+            }
         }
         .refreshable {
             await spoolManService.fetchFilaments(baseUrl: spoolmanUrl)

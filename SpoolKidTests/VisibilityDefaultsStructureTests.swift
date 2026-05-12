@@ -27,7 +27,6 @@ struct VisibilityDefaultsStructureTests {
 
         let nfcSpecifiers = try preferenceSpecifiers(from: "NFCFieldVisibility.plist")
         #expect(hasChildPane(file: "OpenSpoolVisibility", in: nfcSpecifiers))
-        #expect(hasChildPane(file: "OpenPrintTagVisibility", in: nfcSpecifiers))
         #expect(hasChildPane(file: "OpenTag3DVisibility", in: nfcSpecifiers))
         #expect(hasChildPane(file: "AnycubicACEVisibility", in: nfcSpecifiers))
     }
@@ -37,22 +36,6 @@ struct VisibilityDefaultsStructureTests {
         #expect(defaults[AppConfig.visibilityNFCOpenSpoolNameKey] != nil)
         #expect(defaults[AppConfig.visibilityNFCOpenSpoolSubtypeKey] != nil)
         #expect(defaults[AppConfig.visibilityNFCOpenSpoolSpoolIDKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagSpoolIDKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagDensityKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagTransmissionDistanceKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagMaterialTypeKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagGTINKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagManufacturedDateKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagCountryOfOriginKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagPreheatTempKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagDryingTempKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagDryingTimeKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagNominalWeightKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagActualWeightKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagEmptyContainerWeightKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagTagsKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagCertificationsKey] != nil)
-        #expect(defaults[AppConfig.visibilityNFCOpenPrintTagURLKey] != nil)
         #expect(defaults[AppConfig.visibilityNFCOpenTag3DSubtypeKey] != nil)
         #expect(defaults[AppConfig.visibilityNFCOpenTag3DNameKey] != nil)
     }
@@ -118,7 +101,6 @@ struct VisibilityDefaultsStructureTests {
 
     @Test func nfcVisibilityToggleKeysStayInSyncWithConfig() throws {
         let openSpoolKeys = try toggleKeys(from: "OpenSpoolVisibility.plist")
-        let openPrintTagKeys = try toggleKeys(from: "OpenPrintTagVisibility.plist")
         let openTag3DKeys = try toggleKeys(from: "OpenTag3DVisibility.plist")
         let anycubicKeys = try toggleKeys(from: "AnycubicACEVisibility.plist")
 
@@ -128,25 +110,6 @@ struct VisibilityDefaultsStructureTests {
             AppConfig.visibilityNFCOpenSpoolSpoolIDKey
         ]))
 
-        #expect(openPrintTagKeys == Set([
-            AppConfig.visibilityNFCOpenPrintTagDensityKey,
-            AppConfig.visibilityNFCOpenPrintTagTransmissionDistanceKey,
-            AppConfig.visibilityNFCOpenPrintTagMaterialTypeKey,
-            AppConfig.visibilityNFCOpenPrintTagGTINKey,
-            AppConfig.visibilityNFCOpenPrintTagManufacturedDateKey,
-            AppConfig.visibilityNFCOpenPrintTagCountryOfOriginKey,
-            AppConfig.visibilityNFCOpenPrintTagPreheatTempKey,
-            AppConfig.visibilityNFCOpenPrintTagDryingTempKey,
-            AppConfig.visibilityNFCOpenPrintTagDryingTimeKey,
-            AppConfig.visibilityNFCOpenPrintTagNominalWeightKey,
-            AppConfig.visibilityNFCOpenPrintTagActualWeightKey,
-            AppConfig.visibilityNFCOpenPrintTagEmptyContainerWeightKey,
-            AppConfig.visibilityNFCOpenPrintTagTagsKey,
-            AppConfig.visibilityNFCOpenPrintTagCertificationsKey,
-            AppConfig.visibilityNFCOpenPrintTagURLKey,
-            AppConfig.visibilityNFCOpenPrintTagSpoolIDKey
-        ]))
-
         #expect(openTag3DKeys == Set([
             AppConfig.visibilityNFCOpenTag3DSubtypeKey,
             AppConfig.visibilityNFCOpenTag3DNameKey
@@ -154,7 +117,7 @@ struct VisibilityDefaultsStructureTests {
 
         #expect(anycubicKeys.isEmpty)
 
-        let allNFCKeys = openSpoolKeys.union(openPrintTagKeys).union(openTag3DKeys).union(anycubicKeys)
+        let allNFCKeys = openSpoolKeys.union(openTag3DKeys).union(anycubicKeys)
         let defaultKeys = Set(AppConfig.fieldVisibilityDefaults.keys)
         #expect(allNFCKeys.isSubset(of: defaultKeys))
     }

@@ -124,10 +124,14 @@ struct ManageVendorsView: View {
             }
         }
         .sheet(isPresented: $showingAddSheet) {
-            VendorFormView(service: spoolManService, baseUrl: spoolmanUrl)
+            NavigationStack {
+                VendorFormView(service: spoolManService, baseUrl: spoolmanUrl)
+            }
         }
         .sheet(item: $vendorToEdit) { vendor in
-            VendorFormView(service: spoolManService, baseUrl: spoolmanUrl, vendorToEdit: vendor)
+            NavigationStack {
+                VendorFormView(service: spoolManService, baseUrl: spoolmanUrl, vendorToEdit: vendor)
+            }
         }
         .refreshable {
             await spoolManService.fetchVendors(baseUrl: spoolmanUrl)

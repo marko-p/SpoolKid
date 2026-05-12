@@ -14,7 +14,7 @@ import Testing
 private func makeSpool(
     id: Int = 1,
     material: String = "PLA",
-    vendorName: String = "Bambu Lab",
+    vendorName: String = "Elegoo",
     name: String? = "PLA Basic",
     colorHex: String? = "FF0000",
     diameter: Double? = 1.75,
@@ -45,7 +45,7 @@ private func makeSpool(
 
 private func makeTag(
     material: String = "PLA",
-    brand: String = "Bambu Lab",
+    brand: String = "Elegoo",
     name: String? = "PLA Basic",
     colorHex: String = "FF0000",
     minNozzle: Int = 190,
@@ -99,7 +99,7 @@ struct FilamentMatchServiceTests {
     // MARK: Brand matching
 
     @Test func brandMismatchCapsConfidenceBelow80() {
-        let tag = makeTag(material: "PLA", brand: "Bambu Lab")
+        let tag = makeTag(material: "PLA", brand: "Elegoo")
         let spool = makeSpool(material: "PLA", vendorName: "eSUN")
         let result = FilamentMatchService.score(tag: tag, against: spool)
         #expect(result.confidence < 80)
@@ -107,15 +107,15 @@ struct FilamentMatchServiceTests {
     }
 
     @Test func brandMatchIsCaseInsensitive() {
-        let tag = makeTag(brand: "bambu lab")
-        let spool = makeSpool(vendorName: "Bambu Lab")
+        let tag = makeTag(brand: "elegoo")
+        let spool = makeSpool(vendorName: "Elegoo")
         let result = FilamentMatchService.score(tag: tag, against: spool)
         #expect(result.brandMismatch == false)
     }
 
     @Test func brandMismatchFlagSetEvenWhenConfidenceWouldBeHigh() {
         // Same material + color + temps, only brand differs
-        let tag = makeTag(material: "PLA", brand: "Bambu Lab", colorHex: "FF0000", minNozzle: 190, maxNozzle: 240, minBed: 35, maxBed: 65)
+        let tag = makeTag(material: "PLA", brand: "Elegoo", colorHex: "FF0000", minNozzle: 190, maxNozzle: 240, minBed: 35, maxBed: 65)
         let spool = makeSpool(material: "PLA", vendorName: "Polymaker", colorHex: "FF0000", extruderTemp: 220, bedTemp: 65)
         let result = FilamentMatchService.score(tag: tag, against: spool)
         #expect(result.brandMismatch == true)
@@ -178,8 +178,8 @@ struct FilamentMatchServiceTests {
     // MARK: Ranking
 
     @Test func bestMatchIsFirstInRankedResults() {
-        let tag = makeTag(material: "PLA", brand: "Bambu Lab", colorHex: "FF0000")
-        let perfect  = makeSpool(id: 1, material: "PLA", vendorName: "Bambu Lab", colorHex: "FF0000")
+        let tag = makeTag(material: "PLA", brand: "Elegoo", colorHex: "FF0000")
+        let perfect  = makeSpool(id: 1, material: "PLA", vendorName: "Elegoo", colorHex: "FF0000")
         let mediocre = makeSpool(id: 2, material: "PETG", vendorName: "eSUN", colorHex: "0000FF")
         let ranked = FilamentMatchService.rank(tag: tag, spools: [mediocre, perfect])
         #expect(ranked.first?.spool.id == perfect.id)
@@ -203,7 +203,7 @@ struct FilamentMatchServiceTests {
     }
 
     @Test func autoAcceptBlockedByBrandMismatch() {
-        let tag = makeTag(brand: "Bambu Lab")
+        let tag = makeTag(brand: "Elegoo")
         let spool = makeSpool(vendorName: "eSUN")
         let result = FilamentMatchService.score(tag: tag, against: spool)
         // Even if somehow confidence were ≥ 80, brand mismatch must block auto-accept

@@ -37,7 +37,6 @@ struct NewSpoolFilamentSelectionView: View {
                 ForEach(filteredCandidates) { candidate in
                     Button {
                         onSelect(candidate)
-                        dismiss()
                     } label: {
                         candidateRow(candidate)
                     }

@@ -14,16 +14,9 @@ enum WriteTagFormAssembler {
     }
 
     static func shouldShowNameField(
-        format: TagFormat,
-        visibleFieldIDs: Set<String>,
-        isU1CompatActive: Bool
+        visibleFieldIDs: Set<String>
     ) -> Bool {
-        guard visibleFieldIDs.contains("name") else { return false }
-        // Legacy U1 behavior previously hid name for OpenSpool.
-        // Visibility toggles now own this behavior; keep field visible when enabled.
-        _ = format
-        _ = isU1CompatActive
-        return true
+        visibleFieldIDs.contains("name")
     }
 
     static func buildTagData(
@@ -44,21 +37,21 @@ enum WriteTagFormAssembler {
         let normalizedSubtype = subtype.trimmingCharacters(in: .whitespacesAndNewlines)
 
         let nameToWrite: String? = switch format {
-        case .openSpool, .openPrintTag, .openTag3D, .anycubicACE:
+        case .openSpool, .openTag3D, .anycubicACE, .elegoo:
             normalizedName.isEmpty ? nil : normalizedName
         }
 
         let subtypeToWrite: String? = switch format {
         case .openSpool, .openTag3D:
             normalizedSubtype.isEmpty ? nil : normalizedSubtype
-        case .openPrintTag, .anycubicACE:
+        case .anycubicACE, .elegoo:
             nil
         }
 
         let spoolIdToWrite: Int? = switch format {
-        case .openSpool, .openPrintTag:
+        case .openSpool:
             writeSpoolID ? spoolmanId : nil
-        case .openTag3D, .anycubicACE:
+        case .openTag3D, .anycubicACE, .elegoo:
             nil
         }
 

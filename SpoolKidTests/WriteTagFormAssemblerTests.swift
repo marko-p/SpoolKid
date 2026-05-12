@@ -3,11 +3,6 @@ import Testing
 @testable import SpoolKid
 
 struct WriteTagFormAssemblerTests {
-    @Test func localOverrideUsesProvidedFormatWithoutMutatingDefault() {
-        let selected = WriteTagFormAssembler.initialOverride(defaultRawValue: TagFormat.openPrintTag.rawValue)
-        #expect(selected == .openPrintTag)
-    }
-
     @Test func localOverrideFallsBackToOpenSpoolForInvalidRawValue() {
         let selected = WriteTagFormAssembler.initialOverride(defaultRawValue: "not-a-format")
         #expect(selected == .openSpool)
@@ -31,27 +26,6 @@ struct WriteTagFormAssemblerTests {
 
         #expect(data.subtype == "Custom Pearl")
         #expect(data.spoolmanId == 42)
-    }
-
-    @Test func openPrintTagWritesNameOmitsSubtypeAndKeepsSpoolIDWhenEnabled() {
-        let data = WriteTagFormAssembler.buildTagData(
-            format: .openPrintTag,
-            name: "Silk Green",
-            material: "PLA",
-            subtype: "Ignored",
-            brand: "OpenPrint",
-            colorHex: "11AA33",
-            minNozzleTemp: 195,
-            maxNozzleTemp: 220,
-            minBedTemp: 45,
-            maxBedTemp: 60,
-            spoolmanId: 88,
-            writeSpoolID: true
-        )
-
-        #expect(data.name == "Silk Green")
-        #expect(data.subtype == nil)
-        #expect(data.spoolmanId == 88)
     }
 
     @Test func openTag3DWritesNameAndSubtypeButNeverSpoolID() {
@@ -145,7 +119,7 @@ struct WriteTagFormAssemblerTests {
         #expect(resolved == "MySpecialBlend")
     }
 
-    @Test func opentag3dKeepsSubtypeButOpenPrintTagDropsIt() {
+    @Test func openTag3DKeepsSubtypeButAceDropsIt() {
         let ot3d = WriteTagFormAssembler.buildTagData(
             format: .openTag3D,
             name: "Color Name",
@@ -161,8 +135,8 @@ struct WriteTagFormAssemblerTests {
             writeSpoolID: true
         )
 
-        let opt = WriteTagFormAssembler.buildTagData(
-            format: .openPrintTag,
+        let ace = WriteTagFormAssembler.buildTagData(
+            format: .anycubicACE,
             name: "Material Name",
             material: "PLA",
             subtype: "Silk",
@@ -177,7 +151,7 @@ struct WriteTagFormAssemblerTests {
         )
 
         #expect(ot3d.subtype == "Silk")
-        #expect(opt.subtype == nil)
+        #expect(ace.subtype == nil)
     }
 
     @Test func visibleFieldsAreGatedByFormatVisibilityStore() {
@@ -187,10 +161,8 @@ struct WriteTagFormAssemblerTests {
 
         let visibilityStore = NFCFieldVisibilityStore(userDefaults: defaults)
         let openSpoolFieldIDs = Set(WriteTagFormAssembler.visibleFields(format: .openSpool, visibilityStore: visibilityStore).map(\.id))
-        let openPrintTagFieldIDs = Set(WriteTagFormAssembler.visibleFields(format: .openPrintTag, visibilityStore: visibilityStore).map(\.id))
 
         #expect(!openSpoolFieldIDs.contains("subtype"))
-        #expect(openPrintTagFieldIDs.contains("name"))
     }
 
     @Test func openSpoolNameFieldRemainsVisibleWhenU1CompatEnabledIfVisibilityAllowsIt() {

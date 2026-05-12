@@ -20,6 +20,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ScanResultHubView: View {
     let result: ScanResult
@@ -42,7 +43,7 @@ struct ScanResultHubView: View {
         case authoritativeSpool(SpoolmanSpool)
         case cardUIDSpool(SpoolmanSpool)
         case matchResults([FilamentMatchResult])
-        case encryptedTag
+        case unknownTag
         case noSpoolman
     }
 
@@ -69,6 +70,8 @@ struct ScanResultHubView: View {
     @State private var chooserAllowAllSpools = false
     @State private var chooserExcludedSpoolIDs: Set<Int> = []
     @State private var overrideInitialLotNrForNewSpool: String? = nil
+    @State private var rawByteExportFileURL: URL? = nil
+    @State private var showRawByteExportSheet = false
 
     struct SlotReplacementContext {
         let spool: SpoolmanSpool
@@ -159,13 +162,13 @@ struct ScanResultHubView: View {
     static func secondaryCreateAction(
         tagDataAvailable: Bool,
         showCreateSpool: Bool,
-        showUIDActionsForEncryptedTag: Bool
+        showUIDActionsForUnknownTag: Bool
     ) -> SecondaryCreateAction {
         if tagDataAvailable && showCreateSpool {
             return .bestMatch
         }
 
-        if !tagDataAvailable && showUIDActionsForEncryptedTag {
+        if !tagDataAvailable && showUIDActionsForUnknownTag {
             return .uidOnly
         }
 
@@ -206,12 +209,29 @@ struct ScanResultHubView: View {
         return []
     }
 
+    static func shouldShowUnknownRawByteExport(
+        isUnknownFormat: Bool,
+        rawPageLogBytes: [UInt8]?
+    ) -> Bool {
+        isUnknownFormat && !(rawPageLogBytes?.isEmpty ?? true)
+    }
+
+    static func unknownRawByteExportText(
+        rawPageLogBytes: [UInt8],
+        cardUID: String?,
+        timestamp: Date
+    ) -> String {
+        let isoTimestamp = ISO8601DateFormatter().string(from: timestamp)
+        let uidValue = cardUID ?? ""
+        let bytesHex = rawPageLogBytes.map { String(format: "%02X", $0) }.joined()
+        return "{\"timestamp\":\"\(isoTimestamp)\",\"uid\":\"\(uidValue)\",\"source\":\"raw-read-fallback\",\"bytesPerPage\":4,\"bytesHex\":\"\(bytesHex)\"}"
+    }
+
     // MARK: - Body
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
+        ScrollView {
+            VStack(spacing: 20) {
                     topCard
 
                     switch hubState {
@@ -221,24 +241,24 @@ struct ScanResultHubView: View {
 
                     case .authoritativeSpool(let spool):
                         mappingActions(spool: spool)
-                        secondaryActions(tagData: result.tagData, showCreateSpool: false, showUIDActionsForEncryptedTag: false)
+                        secondaryActions(tagData: result.tagData, showCreateSpool: false, showUIDActionsForUnknownTag: false)
 
                     case .cardUIDSpool(let spool):
                         mappingActions(spool: spool)
-                        secondaryActions(tagData: result.tagData, showCreateSpool: false, showUIDActionsForEncryptedTag: false)
+                        secondaryActions(tagData: result.tagData, showCreateSpool: false, showUIDActionsForUnknownTag: false)
 
                     case .matchResults(let matches):
                         matchSection(matches: matches)
-                        secondaryActions(tagData: result.tagData, showCreateSpool: false, showUIDActionsForEncryptedTag: false)
+                        secondaryActions(tagData: result.tagData, showCreateSpool: false, showUIDActionsForUnknownTag: false)
 
-                    case .encryptedTag:
-                        encryptedTagCard
-                        secondaryActions(tagData: nil, showCreateSpool: false, showUIDActionsForEncryptedTag: true)
+                    case .unknownTag:
+                        unknownTagCard
+                        secondaryActions(tagData: nil, showCreateSpool: false, showUIDActionsForUnknownTag: true)
 
                     case .noSpoolman:
                         noSpoolmanCard(spoolmanConfigured: !spoolmanUrl.isEmpty)
                         if let tagData = result.tagData {
-                            secondaryActions(tagData: tagData, showCreateSpool: true, showUIDActionsForEncryptedTag: false)
+                            secondaryActions(tagData: tagData, showCreateSpool: true, showUIDActionsForUnknownTag: false)
                         }
                     }
 
@@ -312,6 +332,11 @@ struct ScanResultHubView: View {
                     }
                 )
             }
+            .sheet(isPresented: $showRawByteExportSheet) {
+                if let fileURL = rawByteExportFileURL {
+                    ShareSheet(activityItems: [fileURL])
+                }
+            }
             .alert("Replace Tag Slot", isPresented: $showSlotReplacementAlert, presenting: slotReplacementContext) { ctx in
                 Button("Slot 1") { applySlotReplacement(ctx: ctx, slot: .first) }
                 Button("Slot 2") { applySlotReplacement(ctx: ctx, slot: .second) }
@@ -321,7 +346,6 @@ struct ScanResultHubView: View {
                 let uid2 = ctx.existingUIDs.indices.contains(1) ? ctx.existingUIDs[1] : "—"
                 Text("Both tag slots are in use.\nSlot 1: \(uid1)\nSlot 2: \(uid2)\n\nWhich slot should be replaced with the new tag?")
             }
-        }
         .task {
             await resolve()
         }
@@ -415,9 +439,9 @@ struct ScanResultHubView: View {
             }
         }
 
-        // 4. Encrypted / MIFARE Classic tag — UID only
-        if result.isEncrypted {
-            hubState = .encryptedTag
+        // 4. Tag has UID but no decoded data — show UID mapping UI
+        if result.cardUID != nil, result.tagData == nil {
+            hubState = .unknownTag
             return
         }
 
@@ -905,11 +929,11 @@ struct ScanResultHubView: View {
     @ViewBuilder
     private var unknownMappingCard: some View {
         VStack(spacing: 8) {
-            Image(systemName: result.isEncrypted ? "lock.fill" : "tag")
+            Image(systemName: result.isUnknownFormat ? "tag" : "tag")
                 .font(.system(size: 36))
-                .foregroundStyle(result.isEncrypted ? .orange : .accentColor)
+                .foregroundStyle(Color.accentColor)
 
-            Text(result.isEncrypted ? result.displayLabel : "No Spoolman Mapping Found")
+            Text(result.isUnknownFormat ? "Unknown Tag Format" : "No Spoolman Mapping Found")
                 .font(.headline)
 
             if let tagData = result.tagData {
@@ -1167,13 +1191,13 @@ struct ScanResultHubView: View {
     }
 
     @ViewBuilder
-    private var encryptedTagCard: some View {
+    private var unknownTagCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label("Encrypted Tag", systemImage: "lock.shield")
+            Label("Unknown Tag Format", systemImage: "tag")
                 .font(.headline)
                 .foregroundStyle(.orange)
 
-            Text("This tag's data is encrypted and cannot be read on iOS. The UID has been captured and can be used to link this tag to a Spoolman spool.")
+            Text("This tag was detected but its format is not supported. The UID has been captured and can be used to link this tag to a Spoolman spool.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -1186,10 +1210,51 @@ struct ScanResultHubView: View {
                 }
                 .buttonStyle(.bordered)
             }
+
+            if Self.shouldShowUnknownRawByteExport(
+                isUnknownFormat: result.isUnknownFormat,
+                rawPageLogBytes: result.rawPageLogBytes
+            ) {
+                Button {
+                    saveUnknownRawPageLogBytes()
+                } label: {
+                    Label("Save raw page log bytes", systemImage: "square.and.arrow.down")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private func saveUnknownRawPageLogBytes() {
+        guard let rawPageLogBytes = result.rawPageLogBytes,
+              Self.shouldShowUnknownRawByteExport(isUnknownFormat: result.isUnknownFormat, rawPageLogBytes: rawPageLogBytes)
+        else {
+            persistenceError = "No raw page log bytes are available for this scan."
+            return
+        }
+
+        let now = Date()
+        let exportText = Self.unknownRawByteExportText(
+            rawPageLogBytes: rawPageLogBytes,
+            cardUID: result.cardUID,
+            timestamp: now
+        )
+        let uidPart = result.cardUID ?? "unknown"
+        let timestampPart = Int(now.timeIntervalSince1970)
+        let filename = "unknown_tag_raw_pages_\(uidPart)_\(timestampPart).json"
+        let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+
+        do {
+            try exportText.write(to: fileURL, atomically: true, encoding: .utf8)
+            rawByteExportFileURL = fileURL
+            showRawByteExportSheet = true
+        } catch {
+            persistenceError = "Failed to save raw page log bytes: \(error.localizedDescription)"
+        }
     }
 
     @ViewBuilder
@@ -1373,12 +1438,12 @@ struct ScanResultHubView: View {
     private func secondaryActions(
         tagData: FilamentTagData?,
         showCreateSpool: Bool,
-        showUIDActionsForEncryptedTag: Bool
+        showUIDActionsForUnknownTag: Bool
     ) -> some View {
         let createAction = Self.secondaryCreateAction(
             tagDataAvailable: tagData != nil,
             showCreateSpool: showCreateSpool,
-            showUIDActionsForEncryptedTag: showUIDActionsForEncryptedTag
+            showUIDActionsForUnknownTag: showUIDActionsForUnknownTag
         )
         let mappingState = Self.existingSpoolMappingState(
             cardUID: result.cardUID,
@@ -1440,7 +1505,7 @@ struct ScanResultHubView: View {
                         .font(.subheadline)
                         .foregroundStyle(.green)
                 }
-            } else if showUIDActionsForEncryptedTag {
+            } else if showUIDActionsForUnknownTag {
                 let uidActionsState = Self.uidOnlyActionsState(
                     cardUID: result.cardUID,
                     persistCardUID: persistCardUID,
@@ -1492,4 +1557,14 @@ struct ScanResultHubView: View {
         }
         .padding(.top, 4)
     }
+}
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

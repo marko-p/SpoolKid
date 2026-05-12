@@ -26,44 +26,42 @@ struct LocationFormView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Current") {
-                    Text(currentLocation)
-                }
+        Form {
+            Section("Current") {
+                Text(currentLocation)
+            }
 
-                Section("Rename") {
-                    TextField("New location name", text: $newLocationName)
-                }
+            Section("Rename") {
+                TextField("New location name", text: $newLocationName)
             }
-            .hideKeyboardOnTap()
-            .navigationTitle("Rename Location")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
+        }
+        .hideKeyboardOnTap()
+        .navigationTitle("Rename Location")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
 
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        saveRename()
-                    }
-                    .disabled(isSaveDisabled)
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    saveRename()
                 }
+                .disabled(isSaveDisabled)
             }
-            .alert(
-                "Could Not Rename Location",
-                isPresented: Binding(
-                    get: { errorMessage != nil },
-                    set: { if !$0 { errorMessage = nil } }
-                )
-            ) {
-                Button("OK", role: .cancel) { errorMessage = nil }
-            } message: {
-                Text(errorMessage ?? "Unknown error")
-            }
-            .onAppear {
-                newLocationName = currentLocation
-            }
+        }
+        .alert(
+            "Could Not Rename Location",
+            isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { errorMessage = nil }
+        } message: {
+            Text(errorMessage ?? "Unknown error")
+        }
+        .onAppear {
+            newLocationName = currentLocation
         }
     }
 

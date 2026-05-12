@@ -89,11 +89,13 @@ struct ManageLocationsView: View {
             set: { if !$0 { selectedLocationToRename = nil } }
         )) {
             if let location = selectedLocationToRename {
-                LocationFormView(
-                    service: spoolManService,
-                    baseUrl: spoolmanUrl,
-                    currentLocation: location
-                )
+                NavigationStack {
+                    LocationFormView(
+                        service: spoolManService,
+                        baseUrl: spoolmanUrl,
+                        currentLocation: location
+                    )
+                }
             }
         }
         .refreshable {

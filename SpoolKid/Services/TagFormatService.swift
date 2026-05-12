@@ -3,7 +3,7 @@
 //  SpoolKid
 //
 //  Purpose: Handles encoding and decoding of different NFC tag formats.
-//  Supports: OpenSpool, OpenPrintTag (Prusa), OpenTag3D, Anycubic ACE.
+//  Supports: OpenSpool, OpenTag3D, Anycubic ACE, ELEGOO.
 //
 
 //
@@ -19,36 +19,35 @@ private let logger = Logger(subsystem: "com.spoolkid", category: "TagFormatServi
 
 enum TagFormat: String, CaseIterable, Identifiable {
     case openSpool = "openspool"
-    case openPrintTag = "openprinttag"
     case openTag3D = "opentag3d"
     case anycubicACE = "anycubic_ace"
-    
+    case elegoo = "elegoo"
+
     var id: String { rawValue }
-    
+
     var displayName: String {
         switch self {
         case .openSpool:    return "OpenSpool"
-        case .openPrintTag: return "OpenPrintTag"
         case .openTag3D:    return "OpenTag3D"
         case .anycubicACE:  return "Anycubic ACE"
+        case .elegoo:       return "ELEGOO"
         }
     }
-    
+
     /// Whether this format uses standard NDEF records (vs raw page writes)
     var isNDEF: Bool {
         switch self {
-        case .openSpool, .openPrintTag, .openTag3D: return true
-        case .anycubicACE: return false
+        case .openSpool, .openTag3D: return true
+        case .anycubicACE, .elegoo:  return false
         }
     }
-    
+
     /// The NDEF MIME type used by this format, if applicable
     var mimeType: String? {
         switch self {
         case .openSpool:    return "application/json"
-        case .openPrintTag: return "application/vnd.openprinttag"
         case .openTag3D:    return "application/opentag3d"
-        case .anycubicACE:  return nil
+        case .anycubicACE, .elegoo:  return nil
         }
     }
 }
@@ -93,16 +92,14 @@ final class TagFormatService {
         case .openSpool:
             let payload = OpenSpoolPayload(from: data)
             result = serializeOpenSpoolManually(payload)
-        case .openPrintTag:
-            result = OpenPrintTagPayload.encode(from: data)
         case .openTag3D:
             result = OpenTag3DPayload.encode(from: data)
-        case .anycubicACE:
-            // ACE uses raw page writes, not a single Data blob for NDEF.
-            // Encoding is handled directly in NFCManager via AnycubicACEPayload.
+        case .anycubicACE, .elegoo:
+            // ACE and Elegoo use raw page writes, not a single Data blob for NDEF.
+            // Encoding is handled directly in NFCManager.
             result = nil
         }
-        if result == nil && format != .anycubicACE {
+        if result == nil && format != .anycubicACE && format != .elegoo {
             logger.error("Encoding failed for format \(format.rawValue, privacy: .public) with material=\(data.material, privacy: .public)")
         }
         return result
@@ -160,13 +157,6 @@ final class TagFormatService {
     func decode(payload: Data, mimeType: String? = nil) -> FilamentTagData? {
         // 1. If we have a MIME type hint, use it for direct dispatch
         if let mime = mimeType?.lowercased() {
-            if mime == "application/vnd.openprinttag" {
-                if let result = OpenPrintTagPayload.decode(from: payload) {
-                    return result.clamped()
-                }
-                logger.warning("Failed to decode OpenPrintTag CBOR payload (\(payload.count) bytes)")
-                return nil
-            }
             if mime == "application/opentag3d" {
                 if let result = OpenTag3DPayload.decode(from: payload) {
                     return result.clamped()
@@ -175,7 +165,7 @@ final class TagFormatService {
                 return nil
             }
         }
-        
+
         // 2. Try OpenSpool (JSON with "protocol": "openspool")
         if let json = try? JSONSerialization.jsonObject(with: payload, options: []) as? [String: Any] {
             if let proto = json["protocol"] as? String, proto == "openspool" {
@@ -184,24 +174,19 @@ final class TagFormatService {
                 }
                 logger.warning("OpenSpool JSON found but failed to decode as OpenSpoolPayload")
             }
-            
+
             // Fallback: Try legacy FilamentTagData format (direct mapping)
             // This supports tags created with older versions of SpoolKid
             if let legacyData = try? jsonDecoder.decode(FilamentTagData.self, from: payload) {
                  return legacyData.clamped()
             }
         }
-        
-        // 3. If no MIME hint but binary data, try OpenPrintTag CBOR
-        if mimeType == nil, let result = OpenPrintTagPayload.decode(from: payload) {
-            return result.clamped()
-        }
-        
-        // 4. Try OpenTag3D binary
+
+        // 3. Try OpenTag3D binary
         if mimeType == nil, let result = OpenTag3DPayload.decode(from: payload) {
             return result.clamped()
         }
-        
+
         logger.info("No format matched for payload (\(payload.count) bytes, mimeType=\(mimeType ?? "nil", privacy: .public))")
         return nil
     }
@@ -210,5 +195,11 @@ final class TagFormatService {
     /// Called by NFCManager after reading pages from a non-NDEF tag.
     func decodeAnycubicACE(pages: [UInt8]) -> FilamentTagData? {
         return AnycubicACEPayload.decode(from: pages)?.clamped()
+    }
+
+    /// Decode raw NFC page data as ELEGOO format.
+    /// Called by NFCManager after reading pages from a non-NDEF tag.
+    func decodeElegoo(pages: [UInt8]) -> FilamentTagData? {
+        return ElegooPayload.decode(from: pages)?.clamped()
     }
 }

@@ -61,113 +61,111 @@ struct VendorFormView: View {
     var body: some View {
         let visibleFieldIDs = Self.visibleFieldIDs()
 
-        NavigationStack {
-            Form {
-                Section("Vendor") {
-                    TextField("Vendor Name", text: $name)
+        Form {
+            Section("Vendor") {
+                TextField("Vendor Name", text: $name)
 
-                    if visibleFieldIDs.contains("comment") {
-                        TextField("Comment", text: $comment, axis: .vertical)
-                            .lineLimit(2...5)
-                    }
+                if visibleFieldIDs.contains("comment") {
+                    TextField("Comment", text: $comment, axis: .vertical)
+                        .lineLimit(2...5)
+                }
 
-                    if visibleFieldIDs.contains("empty_spool_weight") {
-                        TextField("Default Empty Spool Weight", text: $emptySpoolWeight)
-                            .keyboardType(.decimalPad)
-                    }
+                if visibleFieldIDs.contains("empty_spool_weight") {
+                    TextField("Default Empty Spool Weight", text: $emptySpoolWeight)
+                        .keyboardType(.decimalPad)
+                }
 
-                    if visibleFieldIDs.contains("external_id") {
-                        TextField("External ID", text: $externalId)
-                            .textInputAutocapitalization(.never)
-                    }
+                if visibleFieldIDs.contains("external_id") {
+                    TextField("External ID", text: $externalId)
+                        .textInputAutocapitalization(.never)
+                }
 
-                    if visibleFieldIDs.contains("extra") {
-                        TextField("Extra JSON", text: $extraJSON, axis: .vertical)
-                            .lineLimit(2...5)
-                            .textInputAutocapitalization(.never)
-                    }
+                if visibleFieldIDs.contains("extra") {
+                    TextField("Extra JSON", text: $extraJSON, axis: .vertical)
+                        .lineLimit(2...5)
+                        .textInputAutocapitalization(.never)
                 }
             }
-            .hideKeyboardOnTap()
-            .navigationTitle(vendorToEdit == nil ? "Add Vendor" : "Edit Vendor")
-            .alert(
-                "Could Not Save Vendor",
-                isPresented: Binding(
-                    get: { saveErrorMessage != nil },
-                    set: { if !$0 { saveErrorMessage = nil } }
-                )
-            ) {
-                Button("OK", role: .cancel) {
-                    saveErrorMessage = nil
-                }
-            } message: {
-                Text(saveErrorMessage ?? "Unknown error")
+        }
+        .hideKeyboardOnTap()
+        .navigationTitle(vendorToEdit == nil ? "Add Vendor" : "Edit Vendor")
+        .alert(
+            "Could Not Save Vendor",
+            isPresented: Binding(
+                get: { saveErrorMessage != nil },
+                set: { if !$0 { saveErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                saveErrorMessage = nil
             }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        Task {
-                            isSaving = true
-                            defer { isSaving = false }
+        } message: {
+            Text(saveErrorMessage ?? "Unknown error")
+        }
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    Task {
+                        isSaving = true
+                        defer { isSaving = false }
 
-                            let payload = Self.vendorPayload(
-                                name: name,
-                                comment: comment,
-                                emptySpoolWeight: emptySpoolWeight,
-                                externalId: externalId,
-                                extraJSON: extraJSON
+                        let payload = Self.vendorPayload(
+                            name: name,
+                            comment: comment,
+                            emptySpoolWeight: emptySpoolWeight,
+                            externalId: externalId,
+                            extraJSON: extraJSON
+                        )
+
+                        let didSave: Bool
+
+                        if let vendor = vendorToEdit {
+                            didSave = await service.updateVendor(
+                                id: vendor.id,
+                                name: payload["name"] as? String,
+                                comment: payload["comment"] as? String,
+                                emptySpoolWeight: payload["empty_spool_weight"] as? Double,
+                                externalId: payload["external_id"] as? String,
+                                extra: payload["extra"] as? [String: String],
+                                baseUrl: baseUrl
                             )
+                        } else {
+                            didSave = await service.addVendor(
+                                name: payload["name"] as? String ?? name,
+                                comment: payload["comment"] as? String,
+                                emptySpoolWeight: payload["empty_spool_weight"] as? Double,
+                                externalId: payload["external_id"] as? String,
+                                extra: payload["extra"] as? [String: String],
+                                baseUrl: baseUrl
+                            ) != nil
+                        }
 
-                            let didSave: Bool
-
-                            if let vendor = vendorToEdit {
-                                didSave = await service.updateVendor(
-                                    id: vendor.id,
-                                    name: payload["name"] as? String,
-                                    comment: payload["comment"] as? String,
-                                    emptySpoolWeight: payload["empty_spool_weight"] as? Double,
-                                    externalId: payload["external_id"] as? String,
-                                    extra: payload["extra"] as? [String: String],
-                                    baseUrl: baseUrl
-                                )
-                            } else {
-                                didSave = await service.addVendor(
-                                    name: payload["name"] as? String ?? name,
-                                    comment: payload["comment"] as? String,
-                                    emptySpoolWeight: payload["empty_spool_weight"] as? Double,
-                                    externalId: payload["external_id"] as? String,
-                                    extra: payload["extra"] as? [String: String],
-                                    baseUrl: baseUrl
-                                ) != nil
-                            }
-
-                            if didSave {
-                                dismiss()
-                            } else {
-                                saveErrorMessage = service.errorMessage ?? "The vendor could not be saved."
-                            }
+                        if didSave {
+                            dismiss()
+                        } else {
+                            saveErrorMessage = service.errorMessage ?? "The vendor could not be saved."
                         }
                     }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
                 }
+                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
             }
-            .onAppear {
-                if let vendor = vendorToEdit {
-                    name = vendor.name
-                    comment = vendor.comment ?? ""
-                    emptySpoolWeight = vendor.emptySpoolWeight.map { String($0) } ?? ""
-                    externalId = vendor.externalId ?? ""
+        }
+        .onAppear {
+            if let vendor = vendorToEdit {
+                name = vendor.name
+                comment = vendor.comment ?? ""
+                emptySpoolWeight = vendor.emptySpoolWeight.map { String($0) } ?? ""
+                externalId = vendor.externalId ?? ""
 
-                    if let extra = vendor.extra,
-                       let data = try? JSONSerialization.data(withJSONObject: extra, options: [.sortedKeys]),
-                       let string = String(data: data, encoding: .utf8) {
-                        extraJSON = string
-                    } else {
-                        extraJSON = ""
-                    }
+                if let extra = vendor.extra,
+                   let data = try? JSONSerialization.data(withJSONObject: extra, options: [.sortedKeys]),
+                   let string = String(data: data, encoding: .utf8) {
+                    extraJSON = string
+                } else {
+                    extraJSON = ""
                 }
             }
         }
