@@ -14,16 +14,9 @@ enum WriteTagFormAssembler {
     }
 
     static func shouldShowNameField(
-        format: TagFormat,
-        visibleFieldIDs: Set<String>,
-        isU1CompatActive: Bool
+        visibleFieldIDs: Set<String>
     ) -> Bool {
-        guard visibleFieldIDs.contains("name") else { return false }
-        // Legacy U1 behavior previously hid name for OpenSpool.
-        // Visibility toggles now own this behavior; keep field visible when enabled.
-        _ = format
-        _ = isU1CompatActive
-        return true
+        visibleFieldIDs.contains("name")
     }
 
     static func buildTagData(

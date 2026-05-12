@@ -144,7 +144,7 @@ nonisolated struct AppConfig {
         materialPresets.keys.sorted()
     }
     
-    static let brands = ["Prusament", "Polymaker", "eSun", "Sunlu", "Bambu Lab", "Hatchbox", "Overture", "Eryone", "Amolen", "MatterHackers", "Proto-pasta", "ColorFabb", "Generic"]
+    static let brands = ["Prusament", "Polymaker", "eSun", "Sunlu", "Elegoo", "Hatchbox", "Overture", "Eryone", "Amolen", "MatterHackers", "Proto-pasta", "ColorFabb", "Generic"]
     
     static let subtypes = ["Basic", "Rapid", "HF", "Silk", "Matte", "Glossy", "Translucent", "Transparent", "Glitter", "Glow", "Carbon Fiber", "Wood", "Flexible", "Semi Flexible", "Support", "PVA"]
     
@@ -165,53 +165,5 @@ nonisolated struct AppConfig {
         // Offsets applied when deriving min/max temps from a single Spoolman temp value
         static let nozzleTempOffset = 10
         static let bedTempOffset = 5
-    }
-    
-    // MARK: - Snapmaker U1 Compatibility
-    
-    /// Material types supported by the Snapmaker U1 printer (from printtag-web).
-    static let snapmakerU1Materials: [String] = [
-        "PLA", "PETG", "ABS", "ASA", "TPU", "PA", "PA12",
-        "PC", "PEEK", "PVA", "HIPS", "PCTG",
-        "PLA-CF", "PETG-CF", "PA-CF"
-    ]
-    
-    /// Maps Spoolman/SpoolKid material names to Snapmaker U1 compatible equivalents.
-    /// Only materials that need remapping are listed; direct matches are handled separately.
-    static let snapmakerU1MaterialMapping: [String: String] = [
-        // PLA variants
-        "PLA+": "PLA",
-        // ABS variants
-        "ABS+": "ABS",
-        "ABS-T": "ABS",
-        // Nylon -> PA
-        "Nylon": "PA",
-        // Flexible -> TPU
-        "Flexible (TPU)": "TPU",
-        "Flexible (TPE 32D)": "TPU",
-        "Flexible (TPE 88A)": "TPU",
-        "Semi flexible (FPE)": "TPU",
-        // PC variants
-        "Polycarbonate (PC)": "PC",
-        "PC/ABS": "PC",
-        "PC/PBT": "PC",
-        // Carbon fiber (generic) -> PLA-CF as most common CF filament
-        "Carbon Fiber": "PLA-CF",
-    ]
-    
-    /// Attempts to map a material type to a Snapmaker U1 compatible type.
-    /// Returns the original if already compatible, mapped value if a mapping exists,
-    /// or nil if no mapping is possible (user must choose manually).
-    static func resolveSnapmakerU1Material(_ material: String) -> String? {
-        // Case-insensitive check against known U1 materials
-        if snapmakerU1Materials.contains(where: { $0.caseInsensitiveCompare(material) == .orderedSame }) {
-            // Return the canonical casing from the U1 list
-            return snapmakerU1Materials.first(where: { $0.caseInsensitiveCompare(material) == .orderedSame })
-        }
-        // Check mapping table (case-insensitive keys)
-        if let mapped = snapmakerU1MaterialMapping.first(where: { $0.key.caseInsensitiveCompare(material) == .orderedSame })?.value {
-            return mapped
-        }
-        return nil
     }
 }

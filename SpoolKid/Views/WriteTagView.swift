@@ -24,7 +24,6 @@ struct WriteTagView: View {
     
     @AppStorage(AppConfig.spoolmanUrlKey) private var spoolmanUrl: String = AppConfig.defaultSpoolmanUrl
     @AppStorage("write_spool_id") private var writeSpoolId: Bool = true
-    @AppStorage("snapmaker_u1_compat") private var snapmakerU1Compat: Bool = false
     @AppStorage(AppConfig.nfcTagFormatKey) private var nfcTagFormat: String = TagFormat.openSpool.rawValue
     @State private var selectedFormatOverride: TagFormat = .openSpool
     private let nfcVisibilityStore = NFCFieldVisibilityStore()
@@ -51,20 +50,10 @@ struct WriteTagView: View {
     @State private var successBannerScale: CGFloat = 0.85
     @State private var colorSwatchScale: CGFloat = 1.0
     
-    // Snapmaker U1 compatibility state
-    @State private var showCompatPicker = false
-    @State private var incompatibleMaterial = ""
-    @State private var pendingTagData: FilamentTagData? = nil
-    
     var initialData: FilamentTagData?
     
     let brands = AppConfig.brands
     
-    /// Derived property: is Snapmaker U1 compat active for the current format?
-    private var isU1CompatActive: Bool {
-        snapmakerU1Compat && selectedFormatOverride == .openSpool
-    }
-
     private var visibleFieldDefinitions: [NFCFieldDefinition] {
         WriteTagFormAssembler.visibleFields(format: selectedFormatOverride, visibilityStore: nfcVisibilityStore)
     }
@@ -73,9 +62,8 @@ struct WriteTagView: View {
         Set(visibleFieldDefinitions.map(\.id))
     }
     
-    /// When Snapmaker U1 compat is enabled (and format is OpenSpool), show only U1-compatible materials.
     private var availableMaterials: [String] {
-        isU1CompatActive ? AppConfig.snapmakerU1Materials : AppConfig.materials
+        AppConfig.materials
     }
     
     var body: some View {
@@ -179,9 +167,7 @@ struct WriteTagView: View {
                 }
                 
                 if WriteTagFormAssembler.shouldShowNameField(
-                    format: selectedFormatOverride,
-                    visibleFieldIDs: visibleFieldIDs,
-                    isU1CompatActive: isU1CompatActive
+                    visibleFieldIDs: visibleFieldIDs
                 ) {
                     HStack {
                         Text("Name")
@@ -350,23 +336,6 @@ struct WriteTagView: View {
         )) {
             Alert(title: Text("NFC Error"), message: Text(nfcManager.alertMessage), dismissButton: .default(Text("OK")))
         }
-        .sheet(isPresented: $showCompatPicker) {
-            SnapmakerCompatPickerView(
-                incompatibleMaterial: incompatibleMaterial,
-                compatibleMaterials: AppConfig.snapmakerU1Materials,
-                onSelect: { selectedMaterial in
-                    if var data = pendingTagData {
-                        data.material = selectedMaterial
-                        nfcManager.writeTag(data: data, format: selectedFormatOverride)
-                    }
-                    showCompatPicker = false
-                },
-                onCancel: {
-                    pendingTagData = nil
-                    showCompatPicker = false
-                }
-            )
-        }
         .onChange(of: nfcManager.lastWriteSucceeded) { _, succeeded in
             if succeeded, var data = nfcManager.tagDataToWrite {
                 // Restore name for Recent Tags display (may have been stripped for NFC format)
@@ -385,7 +354,7 @@ struct WriteTagView: View {
         if let subtype = data.subtype, !subtype.isEmpty {
             self.subtype = subtype
         } else if let name = data.name {
-            self.subtype = deriveSubtype(from: name)
+            self.subtype = SubtypeOptionService.derive(from: name)
         } else {
             self.subtype = ""
         }
@@ -407,38 +376,6 @@ struct WriteTagView: View {
             spoolmanIdInput = digitsOnly
         }
         spoolmanId = Int(digitsOnly)
-    }
-    
-    private func deriveSubtype(from name: String) -> String {
-        let lowercaseName = name.lowercased()
-        
-        let subtypeMappings: [(keywords: [String], subtype: String)] = [
-            (["matte"], "Matte"),
-            (["silk"], "Silk"),
-            (["glossy", "gloss"], "Glossy"),
-            (["translucent", "translucentpetg"], "Translucent"),
-            (["transparent", "clear"], "Transparent"),
-            (["glitter"], "Glitter"),
-            (["glow"], "Glow"),
-            (["carbon", "cf", "cf15", "cf10"], "Carbon Fiber"),
-            (["wood"], "Wood"),
-            (["support", "pva"], "Support"),
-            (["basic"], "Basic"),
-            (["hf", "high speed", "hs", "hyperspeed"], "HF"),
-            (["rapid"], "Rapid"),
-            (["tpu", "flex", "flexible", "soft"], "Flexible"),
-            (["semi flexible", "semi-flexible", "fpe"], "Semi Flexible")
-        ]
-        
-        for mapping in subtypeMappings {
-            for keyword in mapping.keywords {
-                if lowercaseName.contains(keyword) {
-                    return mapping.subtype
-                }
-            }
-        }
-        
-        return "Basic"
     }
     
     private func buildTagData() -> FilamentTagData {
@@ -502,24 +439,12 @@ struct WriteTagView: View {
     }
 
     private func writeTag() {
-        var data = buildTagData()
+        let data = buildTagData()
         
         // Validate data before attempting write
         if let error = data.validate() {
             nfcManager.alertMessage = error.localizedDescription
             return
-        }
-        
-        // Snapmaker U1 compat only applies to OpenSpool format
-        if isU1CompatActive {
-            if let resolved = AppConfig.resolveSnapmakerU1Material(data.material) {
-                data.material = resolved
-            } else {
-                incompatibleMaterial = data.material
-                pendingTagData = data
-                showCompatPicker = true
-                return
-            }
         }
         
         nfcManager.writeTag(data: data, format: selectedFormatOverride)

@@ -73,25 +73,6 @@
 			<key>File</key>
 			<string>NFCFieldVisibility</string>
 		</dict>
-		<!-- Printer Compatibility -->
-		<dict>
-			<key>Type</key>
-			<string>PSGroupSpecifier</string>
-			<key>Title</key>
-			<string>Printer Compatibility</string>
-			<key>FooterText</key>
-			<string>When enabled, material types are validated against the Snapmaker U1's supported list before writing to NFC. Incompatible types are auto-mapped when possible. Only applies when Write Format is set to OpenSpool.</string>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
-			<key>Title</key>
-			<string>Snapmaker U1 Compatibility</string>
-			<key>Key</key>
-			<string>snapmaker_u1_compat</string>
-			<key>DefaultValue</key>
-			<false/>
-		</dict>
 		<!-- Spoolman Connection -->
 		<dict>
 			<key>Type</key>
@@ -270,7 +251,9 @@
 			<key>Type</key>
 			<string>PSToggleSwitchSpecifier</string>
 			<key>Title</key>
-			<string>Save Tag ID to Spoolman Lot nr.</string>
+			<string>Spoolman Auto Register</string>
+			<key>FooterText</key>
+			<string>Saves the tag UID to Spoolman's lot_nr field to map the physical tag to a spoolman spool. Can be used as an alternative to writing the spool_id to the tag.</string>
 			<key>Key</key>
 			<string>spoolman_persist_card_uid</string>
 			<key>DefaultValue</key>

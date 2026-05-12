@@ -28,17 +28,12 @@ struct SpoolFormView: View {
     @AppStorage("last_spool_empty_weight") private var lastSpoolEmptyWeight: String = "0"
     @AppStorage("last_spool_filament_id") private var lastSpoolFilamentId: Int = -1
     @AppStorage("write_spool_id") private var configWriteSpoolId: Bool = true
-    @AppStorage("snapmaker_u1_compat") private var snapmakerU1Compat: Bool = false
     @AppStorage(AppConfig.nfcTagFormatKey) private var nfcTagFormat: String = TagFormat.openSpool.rawValue
     @AppStorage(AppConfig.spoolmanPersistCardUIDKey) private var persistCardUID: Bool = false
 
     @StateObject private var nfcManager = NFCManager()
     @StateObject private var recentTagManager = RecentTagManager()
     @State private var writeToNfc = false
-
-    @State private var showCompatPicker = false
-    @State private var incompatibleMaterial = ""
-    @State private var pendingTagData: FilamentTagData? = nil
 
     @State private var filamentId: Int?
     @State private var price: String = ""
@@ -432,23 +427,6 @@ struct SpoolFormView: View {
             } message: {
                 Text(saveErrorMessage ?? "Unknown error")
             }
-            .sheet(isPresented: $showCompatPicker) {
-                SnapmakerCompatPickerView(
-                    incompatibleMaterial: incompatibleMaterial,
-                    compatibleMaterials: AppConfig.snapmakerU1Materials,
-                    onSelect: { selectedMaterial in
-                        if var data = pendingTagData {
-                            data.material = selectedMaterial
-                            nfcManager.writeTag(data: data)
-                        }
-                        showCompatPicker = false
-                    },
-                    onCancel: {
-                        pendingTagData = nil
-                        showCompatPicker = false
-                    }
-                )
-            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -533,27 +511,7 @@ struct SpoolFormView: View {
     }
 
     private func writeTag(for spool: SpoolmanSpool) {
-        var data = FilamentTagData.from(spool: spool, writeSpoolId: configWriteSpoolId)
-        let currentFormat = TagFormat(rawValue: nfcTagFormat) ?? .openSpool
-        let isU1CompatActive = snapmakerU1Compat && currentFormat == .openSpool
-
-        if isU1CompatActive {
-            data.name = nil
-        } else if currentFormat == .openSpool {
-            data.subtype = nil
-        }
-
-        if isU1CompatActive {
-            if let resolved = AppConfig.resolveSnapmakerU1Material(data.material) {
-                data.material = resolved
-            } else {
-                incompatibleMaterial = data.material
-                pendingTagData = data
-                showCompatPicker = true
-                return
-            }
-        }
-
+        let data = FilamentTagData.from(spool: spool, writeSpoolId: configWriteSpoolId)
         nfcManager.writeTag(data: data)
     }
 
