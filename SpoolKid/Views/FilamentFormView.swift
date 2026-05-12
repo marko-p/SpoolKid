@@ -240,243 +240,241 @@ struct FilamentFormView: View {
             "extra"
         ].contains { visibleFieldIDs.contains($0) }
 
-        NavigationStack {
-            Form {
-                Section("Basic Info") {
-                    TextField("Name", text: $name)
+        Form {
+            Section("Basic Info") {
+                TextField("Name", text: $name)
 
-                    HStack {
-                        Text("Material")
-                            .frame(width: 80, alignment: .leading)
-                        TextField("Type", text: $material)
-                        Menu {
-                            ForEach(materials, id: \.self) { mat in
-                                Button(mat) {
-                                    material = mat
-                                    updateTempsForMaterial(mat)
-                                }
+                HStack {
+                    Text("Material")
+                        .frame(width: 80, alignment: .leading)
+                    TextField("Type", text: $material)
+                    Menu {
+                        ForEach(materials, id: \.self) { mat in
+                            Button(mat) {
+                                material = mat
+                                updateTempsForMaterial(mat)
                             }
-                        } label: {
-                            Image(systemName: "chevron.down.circle")
-                                .foregroundColor(.accentColor)
                         }
-                    }
-
-                    Picker("Vendor", selection: $vendorId) {
-                        Text("None").tag(Optional<Int>.none)
-                        ForEach(service.vendors) { vendor in
-                            Text(vendor.name).tag(Optional(vendor.id))
-                        }
+                    } label: {
+                        Image(systemName: "chevron.down.circle")
+                            .foregroundColor(.accentColor)
                     }
                 }
 
-                Section("Color") {
-                    HStack {
-                        Text("Color")
-                            .frame(width: 80, alignment: .leading)
+                Picker("Vendor", selection: $vendorId) {
+                    Text("None").tag(Optional<Int>.none)
+                    ForEach(service.vendors) { vendor in
+                        Text(vendor.name).tag(Optional(vendor.id))
+                    }
+                }
+            }
 
-                        TextField("Hex", text: $colorHex)
-                            .onChange(of: colorHex) { _, newValue in
-                                if let newColor = Color(hex: newValue) {
-                                    color = newColor
-                                }
+            Section("Color") {
+                HStack {
+                    Text("Color")
+                        .frame(width: 80, alignment: .leading)
+
+                    TextField("Hex", text: $colorHex)
+                        .onChange(of: colorHex) { _, newValue in
+                            if let newColor = Color(hex: newValue) {
+                                color = newColor
                             }
+                        }
+                        .textInputAutocapitalization(.characters)
+                        .disableAutocorrection(true)
+
+                    ColorPicker("", selection: $color)
+                        .labelsHidden()
+                        .onChange(of: color) { _, newColor in
+                            if let hex = newColor.toHex() {
+                                colorHex = hex
+                            }
+                        }
+                }
+            }
+
+            Section("Physical Properties") {
+                HStack {
+                    Text("Density (g/cm3)")
+                    Spacer()
+                    TextField("\(AppConfig.Defaults.density)", text: $density)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 90)
+                }
+
+                HStack {
+                    Text("Diameter (mm)")
+                    Spacer()
+                    TextField("\(AppConfig.Defaults.diameter)", text: $diameter)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 90)
+                }
+            }
+
+            Section("Temperatures") {
+                HStack {
+                    Text("Extruder Temp")
+                    Spacer()
+                    TextField("C", text: extruderTempBinding)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 90)
+                }
+
+                HStack {
+                    Text("Bed Temp")
+                    Spacer()
+                    TextField("C", text: bedTempBinding)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 90)
+                }
+            }
+
+            if hasAdvancedFields {
+                Section("Advanced") {
+                    if visibleFieldIDs.contains("price") {
+                        HStack {
+                            Text("Price")
+                            Spacer()
+                            TextField("0.00", text: $price)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 100)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("weight") {
+                        HStack {
+                            Text("Net Weight")
+                            Spacer()
+                            TextField("0", text: $weight)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 100)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("spool_weight") {
+                        HStack {
+                            Text("Default Spool Weight")
+                            Spacer()
+                            TextField("0", text: $spoolWeight)
+                                .keyboardType(.decimalPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 100)
+                        }
+                    }
+
+                    if visibleFieldIDs.contains("article_number") {
+                        TextField("Article Number", text: $articleNumber)
+                            .textInputAutocapitalization(.never)
+                    }
+
+                    if visibleFieldIDs.contains("comment") {
+                        TextField("Comment", text: $comment, axis: .vertical)
+                            .lineLimit(2...5)
+                    }
+
+                    if visibleFieldIDs.contains("multi_color_hexes") {
+                        TextField("Multi-Color Hexes", text: $multiColorHexes)
                             .textInputAutocapitalization(.characters)
-                            .disableAutocorrection(true)
-
-                        ColorPicker("", selection: $color)
-                            .labelsHidden()
-                            .onChange(of: color) { _, newColor in
-                                if let hex = newColor.toHex() {
-                                    colorHex = hex
-                                }
-                            }
-                    }
-                }
-
-                Section("Physical Properties") {
-                    HStack {
-                        Text("Density (g/cm3)")
-                        Spacer()
-                        TextField("\(AppConfig.Defaults.density)", text: $density)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 90)
                     }
 
-                    HStack {
-                        Text("Diameter (mm)")
-                        Spacer()
-                        TextField("\(AppConfig.Defaults.diameter)", text: $diameter)
-                            .keyboardType(.decimalPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 90)
-                    }
-                }
-
-                Section("Temperatures") {
-                    HStack {
-                        Text("Extruder Temp")
-                        Spacer()
-                        TextField("C", text: extruderTempBinding)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 90)
+                    if visibleFieldIDs.contains("multi_color_direction") {
+                        TextField("Multi-Color Direction", text: $multiColorDirection)
+                            .textInputAutocapitalization(.never)
                     }
 
-                    HStack {
-                        Text("Bed Temp")
-                        Spacer()
-                        TextField("C", text: bedTempBinding)
-                            .keyboardType(.numberPad)
-                            .multilineTextAlignment(.trailing)
-                            .frame(width: 90)
+                    if visibleFieldIDs.contains("external_id") {
+                        TextField("External ID", text: $externalId)
+                            .textInputAutocapitalization(.never)
                     }
-                }
 
-                if hasAdvancedFields {
-                    Section("Advanced") {
-                        if visibleFieldIDs.contains("price") {
-                            HStack {
-                                Text("Price")
-                                Spacer()
-                                TextField("0.00", text: $price)
-                                    .keyboardType(.decimalPad)
-                                    .multilineTextAlignment(.trailing)
-                                    .frame(width: 100)
-                            }
-                        }
-
-                        if visibleFieldIDs.contains("weight") {
-                            HStack {
-                                Text("Net Weight")
-                                Spacer()
-                                TextField("0", text: $weight)
-                                    .keyboardType(.decimalPad)
-                                    .multilineTextAlignment(.trailing)
-                                    .frame(width: 100)
-                            }
-                        }
-
-                        if visibleFieldIDs.contains("spool_weight") {
-                            HStack {
-                                Text("Default Spool Weight")
-                                Spacer()
-                                TextField("0", text: $spoolWeight)
-                                    .keyboardType(.decimalPad)
-                                    .multilineTextAlignment(.trailing)
-                                    .frame(width: 100)
-                            }
-                        }
-
-                        if visibleFieldIDs.contains("article_number") {
-                            TextField("Article Number", text: $articleNumber)
-                                .textInputAutocapitalization(.never)
-                        }
-
-                        if visibleFieldIDs.contains("comment") {
-                            TextField("Comment", text: $comment, axis: .vertical)
-                                .lineLimit(2...5)
-                        }
-
-                        if visibleFieldIDs.contains("multi_color_hexes") {
-                            TextField("Multi-Color Hexes", text: $multiColorHexes)
-                                .textInputAutocapitalization(.characters)
-                        }
-
-                        if visibleFieldIDs.contains("multi_color_direction") {
-                            TextField("Multi-Color Direction", text: $multiColorDirection)
-                                .textInputAutocapitalization(.never)
-                        }
-
-                        if visibleFieldIDs.contains("external_id") {
-                            TextField("External ID", text: $externalId)
-                                .textInputAutocapitalization(.never)
-                        }
-
-                        if visibleFieldIDs.contains("extra") {
-                            TextField("Extra JSON", text: $extraJSON, axis: .vertical)
-                                .lineLimit(2...5)
-                                .textInputAutocapitalization(.never)
-                        }
+                    if visibleFieldIDs.contains("extra") {
+                        TextField("Extra JSON", text: $extraJSON, axis: .vertical)
+                            .lineLimit(2...5)
+                            .textInputAutocapitalization(.never)
                     }
                 }
             }
-            .hideKeyboardOnTap()
-            .navigationTitle(filamentToEdit == nil ? "Add Filament" : "Edit Filament")
-            .alert(
-                "Could Not Save Filament",
-                isPresented: Binding(
-                    get: { saveErrorMessage != nil },
-                    set: { if !$0 { saveErrorMessage = nil } }
-                )
-            ) {
-                Button("OK", role: .cancel) {
-                    saveErrorMessage = nil
-                }
-            } message: {
-                Text(saveErrorMessage ?? "Unknown error")
+        }
+        .hideKeyboardOnTap()
+        .navigationTitle(filamentToEdit == nil ? "Add Filament" : "Edit Filament")
+        .alert(
+            "Could Not Save Filament",
+            isPresented: Binding(
+                get: { saveErrorMessage != nil },
+                set: { if !$0 { saveErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {
+                saveErrorMessage = nil
             }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        Task { await saveFilament() }
-                    }
-                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
-                }
+        } message: {
+            Text(saveErrorMessage ?? "Unknown error")
+        }
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
             }
-            .onAppear {
-                if service.vendors.isEmpty {
-                    Task { await service.fetchVendors(baseUrl: baseUrl) }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    Task { await saveFilament() }
+                }
+                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+            }
+        }
+        .onAppear {
+            if service.vendors.isEmpty {
+                Task { await service.fetchVendors(baseUrl: baseUrl) }
+            }
+
+            if let filament = filamentToEdit {
+                name = filament.name ?? ""
+                material = filament.material ?? ""
+                vendorId = filament.vendor?.id
+                colorHex = filament.colorHex ?? AppConfig.Defaults.colorHex
+                if let hex = filament.colorHex {
+                    color = Color(hex: hex) ?? .black
                 }
 
-                if let filament = filamentToEdit {
-                    name = filament.name ?? ""
-                    material = filament.material ?? ""
-                    vendorId = filament.vendor?.id
-                    colorHex = filament.colorHex ?? AppConfig.Defaults.colorHex
-                    if let hex = filament.colorHex {
-                        color = Color(hex: hex) ?? .black
-                    }
+                density = filament.density.map { String($0) } ?? density
+                diameter = filament.diameter.map { String($0) } ?? diameter
+                extruderTemp = filament.settingsExtruderTemp.map { String($0) } ?? extruderTemp
+                bedTemp = filament.settingsBedTemp.map { String($0) } ?? bedTemp
 
-                    density = filament.density.map { String($0) } ?? density
-                    diameter = filament.diameter.map { String($0) } ?? diameter
-                    extruderTemp = filament.settingsExtruderTemp.map { String($0) } ?? extruderTemp
-                    bedTemp = filament.settingsBedTemp.map { String($0) } ?? bedTemp
+                price = filament.price.map { String($0) } ?? ""
+                weight = filament.weight.map { String($0) } ?? ""
+                spoolWeight = filament.spoolWeight.map { String($0) } ?? ""
+                articleNumber = filament.articleNumber ?? ""
+                comment = filament.comment ?? ""
+                multiColorHexes = filament.multiColorHexes ?? ""
+                multiColorDirection = filament.multiColorDirection ?? ""
+                externalId = filament.externalId ?? ""
 
-                    price = filament.price.map { String($0) } ?? ""
-                    weight = filament.weight.map { String($0) } ?? ""
-                    spoolWeight = filament.spoolWeight.map { String($0) } ?? ""
-                    articleNumber = filament.articleNumber ?? ""
-                    comment = filament.comment ?? ""
-                    multiColorHexes = filament.multiColorHexes ?? ""
-                    multiColorDirection = filament.multiColorDirection ?? ""
-                    externalId = filament.externalId ?? ""
-
-                    if let extra = filament.extra,
-                       let data = try? JSONSerialization.data(withJSONObject: extra, options: [.sortedKeys]),
-                       let string = String(data: data, encoding: .utf8) {
-                        extraJSON = string
-                    } else {
-                        extraJSON = ""
-                    }
-                } else if rememberFilamentData {
-                    if !lastFilamentMaterial.isEmpty { material = lastFilamentMaterial }
-                    if lastFilamentVendorId != -1 { vendorId = lastFilamentVendorId }
-
-                    colorHex = lastFilamentColorHex
-                    if let newColor = Color(hex: colorHex) {
-                        color = newColor
-                    }
-
-                    density = String(lastFilamentDensity)
-                    diameter = String(lastFilamentDiameter)
-                    extruderTemp = String(lastFilamentExtruderTemp)
-                    bedTemp = String(lastFilamentBedTemp)
+                if let extra = filament.extra,
+                   let data = try? JSONSerialization.data(withJSONObject: extra, options: [.sortedKeys]),
+                   let string = String(data: data, encoding: .utf8) {
+                    extraJSON = string
+                } else {
+                    extraJSON = ""
                 }
+            } else if rememberFilamentData {
+                if !lastFilamentMaterial.isEmpty { material = lastFilamentMaterial }
+                if lastFilamentVendorId != -1 { vendorId = lastFilamentVendorId }
+
+                colorHex = lastFilamentColorHex
+                if let newColor = Color(hex: colorHex) {
+                    color = newColor
+                }
+
+                density = String(lastFilamentDensity)
+                diameter = String(lastFilamentDiameter)
+                extruderTemp = String(lastFilamentExtruderTemp)
+                bedTemp = String(lastFilamentBedTemp)
             }
         }
     }

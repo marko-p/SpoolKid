@@ -85,9 +85,7 @@ struct SpoolmanTabView: View {
                 AboutView()
             }
             .sheet(isPresented: $showingAddSpoolSheet) {
-                NavigationStack {
-                    SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl)
-                }
+                SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl)
             }
         }
     }

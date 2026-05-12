@@ -351,21 +351,23 @@ struct WriteTagView: View {
             Alert(title: Text("NFC Error"), message: Text(nfcManager.alertMessage), dismissButton: .default(Text("OK")))
         }
         .sheet(isPresented: $showCompatPicker) {
-            SnapmakerCompatPickerView(
-                incompatibleMaterial: incompatibleMaterial,
-                compatibleMaterials: AppConfig.snapmakerU1Materials,
-                onSelect: { selectedMaterial in
-                    if var data = pendingTagData {
-                        data.material = selectedMaterial
-                        nfcManager.writeTag(data: data, format: selectedFormatOverride)
+            NavigationStack {
+                SnapmakerCompatPickerView(
+                    incompatibleMaterial: incompatibleMaterial,
+                    compatibleMaterials: AppConfig.snapmakerU1Materials,
+                    onSelect: { selectedMaterial in
+                        if var data = pendingTagData {
+                            data.material = selectedMaterial
+                            nfcManager.writeTag(data: data, format: selectedFormatOverride)
+                        }
+                        showCompatPicker = false
+                    },
+                    onCancel: {
+                        pendingTagData = nil
+                        showCompatPicker = false
                     }
-                    showCompatPicker = false
-                },
-                onCancel: {
-                    pendingTagData = nil
-                    showCompatPicker = false
-                }
-            )
+                )
+            }
         }
         .onChange(of: nfcManager.lastWriteSucceeded) { _, succeeded in
             if succeeded, var data = nfcManager.tagDataToWrite {

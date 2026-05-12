@@ -117,14 +117,10 @@ struct ManageSpoolsView: View {
             }
         }
         .sheet(isPresented: $showingAddSheet) {
-            NavigationStack {
-                SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl)
-            }
+            SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl)
         }
         .sheet(item: $spoolToEdit) { spool in
-            NavigationStack {
-                SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl, spoolToEdit: spool)
-            }
+            SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl, spoolToEdit: spool)
         }
         .refreshable {
             await spoolManService.fetchSpools(baseUrl: spoolmanUrl)

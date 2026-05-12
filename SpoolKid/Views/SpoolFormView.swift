@@ -433,21 +433,23 @@ struct SpoolFormView: View {
                 Text(saveErrorMessage ?? "Unknown error")
             }
             .sheet(isPresented: $showCompatPicker) {
-                SnapmakerCompatPickerView(
-                    incompatibleMaterial: incompatibleMaterial,
-                    compatibleMaterials: AppConfig.snapmakerU1Materials,
-                    onSelect: { selectedMaterial in
-                        if var data = pendingTagData {
-                            data.material = selectedMaterial
-                            nfcManager.writeTag(data: data)
+                NavigationStack {
+                    SnapmakerCompatPickerView(
+                        incompatibleMaterial: incompatibleMaterial,
+                        compatibleMaterials: AppConfig.snapmakerU1Materials,
+                        onSelect: { selectedMaterial in
+                            if var data = pendingTagData {
+                                data.material = selectedMaterial
+                                nfcManager.writeTag(data: data)
+                            }
+                            showCompatPicker = false
+                        },
+                        onCancel: {
+                            pendingTagData = nil
+                            showCompatPicker = false
                         }
-                        showCompatPicker = false
-                    },
-                    onCancel: {
-                        pendingTagData = nil
-                        showCompatPicker = false
-                    }
-                )
+                    )
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
