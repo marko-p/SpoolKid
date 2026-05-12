@@ -364,9 +364,8 @@ struct SpoolFormView: View {
     var body: some View {
         let visibleFieldIDs = Self.visibleFieldIDs()
 
-        NavigationStack {
-            Form {
-                filamentSection
+        Form {
+            filamentSection
                 propertiesSection
                 weightStatusSection
 
@@ -531,7 +530,6 @@ struct SpoolFormView: View {
                     recentTagManager.addTag(data)
                 }
             }
-        }
     }
 
     private func writeTag(for spool: SpoolmanSpool) {

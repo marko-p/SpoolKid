@@ -13,7 +13,7 @@
 			<key>Title</key>
 			<string>NFC Tag Options</string>
 			<key>FooterText</key>
-			<string>Choose the NFC tag format for writing. Reading auto-detects the format. Anycubic ACE uses raw page writes (non-NDEF) for compatibility with ACE Pro spool holders.</string>
+			<string>Choose the NFC tag format for writing. Reading auto-detects the format. Anycubic ACE and ELEGOO use raw page writes (non-NDEF) for compatibility with their respective spool holders.</string>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -27,16 +27,16 @@
 			<key>Titles</key>
 			<array>
 				<string>OpenSpool</string>
-				<string>OpenPrintTag</string>
 				<string>OpenTag3D</string>
 				<string>Anycubic ACE</string>
+				<string>ELEGOO</string>
 			</array>
 			<key>Values</key>
 			<array>
 				<string>openspool</string>
-				<string>openprinttag</string>
 				<string>opentag3d</string>
 				<string>anycubic_ace</string>
+				<string>elegoo</string>
 			</array>
 		</dict>
 		<dict>

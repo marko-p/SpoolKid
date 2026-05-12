@@ -24,14 +24,6 @@
 		<key>Type</key>
 		<string>PSChildPaneSpecifier</string>
 		<key>Title</key>
-		<string>OpenPrintTag Fields</string>
-		<key>File</key>
-		<string>OpenPrintTagVisibility</string>
-	</dict>
-	<dict>
-		<key>Type</key>
-		<string>PSChildPaneSpecifier</string>
-		<key>Title</key>
 		<string>OpenTag3D Fields</string>
 		<key>File</key>
 		<string>OpenTag3DVisibility</string>

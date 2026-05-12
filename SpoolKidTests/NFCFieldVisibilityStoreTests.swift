@@ -13,22 +13,6 @@ struct NFCFieldVisibilityStoreTests {
         .init(format: .openSpool, fieldID: "name", key: AppConfig.visibilityNFCOpenSpoolNameKey),
         .init(format: .openSpool, fieldID: "subtype", key: AppConfig.visibilityNFCOpenSpoolSubtypeKey),
         .init(format: .openSpool, fieldID: "spool_id", key: AppConfig.visibilityNFCOpenSpoolSpoolIDKey),
-        .init(format: .openPrintTag, fieldID: "density", key: AppConfig.visibilityNFCOpenPrintTagDensityKey),
-        .init(format: .openPrintTag, fieldID: "transmission_distance", key: AppConfig.visibilityNFCOpenPrintTagTransmissionDistanceKey),
-        .init(format: .openPrintTag, fieldID: "material_type", key: AppConfig.visibilityNFCOpenPrintTagMaterialTypeKey),
-        .init(format: .openPrintTag, fieldID: "gtin", key: AppConfig.visibilityNFCOpenPrintTagGTINKey),
-        .init(format: .openPrintTag, fieldID: "manufactured_date", key: AppConfig.visibilityNFCOpenPrintTagManufacturedDateKey),
-        .init(format: .openPrintTag, fieldID: "country_of_origin", key: AppConfig.visibilityNFCOpenPrintTagCountryOfOriginKey),
-        .init(format: .openPrintTag, fieldID: "preheat_temperature", key: AppConfig.visibilityNFCOpenPrintTagPreheatTempKey),
-        .init(format: .openPrintTag, fieldID: "drying_temperature", key: AppConfig.visibilityNFCOpenPrintTagDryingTempKey),
-        .init(format: .openPrintTag, fieldID: "drying_time", key: AppConfig.visibilityNFCOpenPrintTagDryingTimeKey),
-        .init(format: .openPrintTag, fieldID: "nominal_netto_full_weight", key: AppConfig.visibilityNFCOpenPrintTagNominalWeightKey),
-        .init(format: .openPrintTag, fieldID: "actual_netto_full_weight", key: AppConfig.visibilityNFCOpenPrintTagActualWeightKey),
-        .init(format: .openPrintTag, fieldID: "empty_container_weight", key: AppConfig.visibilityNFCOpenPrintTagEmptyContainerWeightKey),
-        .init(format: .openPrintTag, fieldID: "material_tags", key: AppConfig.visibilityNFCOpenPrintTagTagsKey),
-        .init(format: .openPrintTag, fieldID: "certifications", key: AppConfig.visibilityNFCOpenPrintTagCertificationsKey),
-        .init(format: .openPrintTag, fieldID: "tag_url", key: AppConfig.visibilityNFCOpenPrintTagURLKey),
-        .init(format: .openPrintTag, fieldID: "spool_id", key: AppConfig.visibilityNFCOpenPrintTagSpoolIDKey),
         .init(format: .openTag3D, fieldID: "subtype", key: AppConfig.visibilityNFCOpenTag3DSubtypeKey),
         .init(format: .openTag3D, fieldID: "name", key: AppConfig.visibilityNFCOpenTag3DNameKey)
     ]
@@ -80,7 +64,7 @@ struct NFCFieldVisibilityStoreTests {
             #expect(!field.isEssential)
         }
 
-        for format in [TagFormat.openSpool, .openPrintTag, .openTag3D, .anycubicACE] {
+        for format in [TagFormat.openSpool, .openTag3D, .anycubicACE, .elegoo] {
             let mappedFieldIDs = Set(Self.mappedOptionalFields.filter { $0.format == format }.map(\.fieldID))
             let defaultHiddenNonEssentialFieldIDs = Set(
                 NFCFieldCatalog.fields(for: format)

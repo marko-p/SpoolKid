@@ -4,8 +4,8 @@
 //
 //  Purpose: Core logic for interacting with CoreNFC.
 //  Responsibilities:
-//  - Managing NFCNDEFReaderSession (for OpenSpool, OpenPrintTag, OpenTag3D).
-//  - Managing NFCTagReaderSession (for Anycubic ACE raw page access and Bambu Lab UID detection).
+//  - Managing NFCNDEFReaderSession (for OpenSpool, OpenTag3D).
+//  - Managing NFCTagReaderSession (for Anycubic ACE and ELEGOO raw page access).
 //  - Reading NDEF messages and decoding them into `FilamentTagData`.
 //  - Auto-detecting the tag format on read.
 //  - Encoding `FilamentTagData` and writing to NFC tags in the selected format.
@@ -14,9 +14,9 @@
 //
 //  Scan flow:
 //  - `startScanning()`: unified scan via NFCTagReaderSession (iso14443).
-//    Detects MIFARE Ultralight/NTAG (NDEF) and MIFARE Classic (Bambu).
-//    For NTAG tags: attempts NDEF read first, then ACE raw fallback.
-//    For MIFARE Classic tags: emits Bambu probe result (UID only; data encrypted on iOS).
+//    Detects MIFARE Ultralight/NTAG (NDEF).
+//    For NTAG tags: attempts NDEF read first, then ACE raw fallback, then Elegoo raw fallback.
+//    For MIFARE Classic tags: emits UID-only result (data encrypted on iOS).
 //  - `startScanningRaw()`: retained for explicit "Scan ACE Tag" menu entry (same session type).
 //  - `writeTag(data:)`: unchanged; uses NDEF session for NDEF formats, tag session for ACE.
 //
@@ -44,7 +44,18 @@ import Combine
 // Internal mutable state (isWriting, tagDataToWrite) is protected by a serial queue.
 class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCTagReaderSessionDelegate {
 
-    private static let openPrintTagURLMIMEType = "text/plain"
+    enum RawReadFormatAttempt: Equatable {
+        case elegoo
+        case anycubicACE
+    }
+
+    enum RawReadFollowupAction: Equatable {
+        case stop
+        case tryAnycubicACE
+        case emitUIDOnly
+    }
+
+    static let rawReadAttemptOrder: [RawReadFormatAttempt] = [.elegoo, .anycubicACE]
 
     @Published var alertMessage = ""
     @Published var isScanning = false
@@ -87,7 +98,7 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
     // MARK: - Public API
 
     /// Unified scan: uses NFCTagReaderSession to handle all tag families.
-    /// Dispatches to NDEF read for NTAG/Ultralight tags and to Bambu probe for MIFARE Classic.
+    /// Dispatches to NDEF read for NTAG/Ultralight tags; MIFARE Classic falls back to UID-only.
     func startScanning() {
         guard NFCNDEFReaderSession.readingAvailable else {
             alertMessage = "NFC is not available on this device."
@@ -236,21 +247,18 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
         // Session became active, waiting for tag
     }
 
-    // MARK: - Unified Read (NTAG NDEF → ACE raw → Bambu probe)
+    // MARK: - Unified Read (NTAG NDEF → ACE raw → Elegoo raw → UID-only)
 
     /// Main read dispatcher for the unified scan path.
-    /// Order: NDEF read → ACE raw fallback → Bambu UID-only probe.
+    /// Order: NDEF read → ACE raw fallback → Elegoo raw fallback → UID-only result.
     private func handleUnifiedRead(session: NFCTagReaderSession, tag: NFCMiFareTag) {
-        let identifierBytes = [UInt8](tag.identifier)
-        let probe = BambuTagProbe.probe(identifierBytes: identifierBytes, ndefPayload: nil)
-
         // Try NDEF first (works for NTAG/Ultralight based tags)
-        tryNDEFRead(session: session, tag: tag, probe: probe)
+        tryNDEFRead(session: session, tag: tag)
     }
 
     /// Attempt to read NDEF payload from a MiFare tag.
     /// Falls back to ACE raw read on failure.
-    private func tryNDEFRead(session: NFCTagReaderSession, tag: NFCMiFareTag, probe: BambuTagProbeResult) {
+    private func tryNDEFRead(session: NFCTagReaderSession, tag: NFCMiFareTag) {
         // NFCMiFareTag conforms to NFCNDEFTag, so use it directly.
         let ndefTag: NFCNDEFTag = tag
 
@@ -261,42 +269,27 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
 
             ndefTag.readNDEF { message, error in
                 if error != nil {
-                    // NDEF read error — try ACE raw before giving up
-                    // MIFARE Classic tags commonly fail here with connection/auth errors.
-                    self.tryACERawRead(session: session, tag: tag, probe: probe, ndefNotSupported: hintedNotSupported)
+                    // NDEF read error — try raw reads before giving up
+                    self.tryRawReads(session: session, tag: tag)
                     return
                 }
 
                 guard let message = message else {
-                    self.tryACERawRead(session: session, tag: tag, probe: probe, ndefNotSupported: hintedNotSupported)
+                    self.tryRawReads(session: session, tag: tag)
                     return
-                }
-
-                var discoveredOpenPrintTagURL: String?
-                for record in message.records {
-                    if let mimeType = self.getMimeType(from: record)?.lowercased(),
-                       mimeType == Self.openPrintTagURLMIMEType,
-                       let data = self.getPayloadData(from: record),
-                       let urlString = String(data: data, encoding: .utf8),
-                       !urlString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        discoveredOpenPrintTagURL = urlString
-                    }
                 }
 
                 // Try to decode the NDEF payload
                 for record in message.records {
                     let mimeType = self.getMimeType(from: record)
                     if let data = self.getPayloadData(from: record),
-                       var decoded = TagFormatService.shared.decode(payload: data, mimeType: mimeType) {
-                        if let mimeType = mimeType?.lowercased(), mimeType == "application/vnd.openprinttag" {
-                            decoded.tagURL = discoveredOpenPrintTagURL
-                        }
+                       let decoded = TagFormatService.shared.decode(payload: data, mimeType: mimeType) {
                         let detectedFormat = self.detectedFormat(from: mimeType)
+                        let uid = self.normalizedUID(from: tag)
                         let result = ScanResult(
-                            cardUID: probe.normalizedUID.isEmpty ? nil : probe.normalizedUID,
+                            cardUID: uid,
                             tagData: decoded,
-                            format: detectedFormat,
-                            bambuProbe: nil
+                            format: detectedFormat
                         )
                         session.alertMessage = "Tag read successfully!"
                         session.invalidate()
@@ -305,91 +298,165 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
                     }
                 }
 
-                // NDEF present but no recognized format — fall through to ACE
-                self.tryACERawRead(session: session, tag: tag, probe: probe, ndefNotSupported: hintedNotSupported)
+                // NDEF present but no recognized format — fall through to raw reads
+                self.tryRawReads(session: session, tag: tag)
             }
         }
     }
 
-    /// Attempt Anycubic ACE raw page read. Surfaces Bambu probe result on failure.
-    private func tryACERawRead(
+    /// Attempt raw page reads for ELEGOO and ACE formats.
+    /// Falls back to UID-only result if all decodes fail.
+    private func tryRawReads(
+        session: NFCTagReaderSession,
+        tag: NFCMiFareTag
+    ) {
+        self.tryElegooRead(session: session, tag: tag) { [weak self] elegooReadSucceeded, elegooBufferData in
+            guard let self = self else { return }
+
+            let action = Self.rawReadFollowupAction(
+                elegooReadSucceeded: elegooReadSucceeded,
+                shouldTryACEFallback: Self.shouldTryACEFallback(afterElegooFailure: !elegooReadSucceeded)
+            )
+
+            switch action {
+            case .stop:
+                return
+            case .tryAnycubicACE:
+                let priorRawBytes = self.trimmedRawPageLogBytes(from: elegooBufferData)
+                self.tryAnycubicACERead(
+                    session: session,
+                    tag: tag,
+                    priorUnknownRawPageBytes: priorRawBytes
+                )
+            case .emitUIDOnly:
+                let rawBytes = self.trimmedRawPageLogBytes(from: elegooBufferData)
+                self.emitUIDOnlyResult(
+                    session: session,
+                    tag: tag,
+                    alertMessage: "Unknown tag format. UID captured.",
+                    rawPageLogBytes: rawBytes
+                )
+            }
+        }
+    }
+
+    private func tryAnycubicACERead(
         session: NFCTagReaderSession,
         tag: NFCMiFareTag,
-        probe: BambuTagProbeResult,
-        ndefNotSupported: Bool
+        priorUnknownRawPageBytes: [UInt8]? = nil
     ) {
-        let readPages = [0, 4, 8, 12, 16, 20, 24, 28]
-        guard let buffer = NSMutableData(length: AnycubicACEPayload.totalBytes) else {
-            emitProbeResult(session: session, probe: probe, strongBambuEvidence: ndefNotSupported)
+        let aceReadPages = [0, 4, 8, 12, 16, 20, 24, 28]
+        guard let aceBuffer = NSMutableData(length: AnycubicACEPayload.totalBytes) else {
+            emitUIDOnlyResult(session: session, tag: tag, alertMessage: "Tag detected. UID captured.")
             return
         }
 
-        readACEPagesSequentially(session: session, tag: tag, readPages: readPages, index: 0, buffer: buffer) { [weak self] error in
+        readACEPagesSequentially(session: session, tag: tag, readPages: aceReadPages, index: 0, buffer: aceBuffer) { [weak self] error in
             guard let self = self else { return }
 
             if error != nil {
-                // Page read failed — likely MIFARE Classic encryption; emit probe
-                self.emitProbeResult(session: session, probe: probe, strongBambuEvidence: ndefNotSupported)
+                self.emitUIDOnlyResult(
+                    session: session,
+                    tag: tag,
+                    alertMessage: "Tag detected. UID captured.",
+                    rawPageLogBytes: priorUnknownRawPageBytes
+                )
                 return
             }
 
-            let bytes = [UInt8](buffer as Data)
-            if let tagData = TagFormatService.shared.decodeAnycubicACE(pages: bytes) {
-                let uid = probe.normalizedUID.isEmpty ? nil : probe.normalizedUID
+            let aceBytes = [UInt8](aceBuffer as Data)
+            if let tagData = TagFormatService.shared.decodeAnycubicACE(pages: aceBytes) {
+                let uid = self.normalizedUID(from: tag)
                 let result = ScanResult(
                     cardUID: uid,
                     tagData: tagData,
-                    format: .anycubicACE,
-                    bambuProbe: nil
+                    format: .anycubicACE
                 )
                 session.alertMessage = "Tag read successfully! (Anycubic ACE)"
                 session.invalidate()
                 DispatchQueue.main.async { self.scanResult = result; self.isScanning = false }
-            } else {
-                // Raw page reads succeeded but format is unknown.
-                // This is not strong evidence for Bambu encryption.
-                self.emitUnknownReadableResult(session: session, probe: probe)
+                return
             }
+
+            let aceRawBytes = self.trimmedRawPageLogBytes(from: aceBuffer as Data)
+            self.emitUIDOnlyResult(
+                session: session,
+                tag: tag,
+                alertMessage: "Unknown tag format. UID captured.",
+                rawPageLogBytes: aceRawBytes ?? priorUnknownRawPageBytes
+            )
         }
     }
 
-    /// Emit a UID-only scan result (Bambu encrypted tag or unknown MIFARE tag).
-    private func emitProbeResult(
+    private func tryElegooRead(
         session: NFCTagReaderSession,
-        probe: BambuTagProbeResult,
-        strongBambuEvidence: Bool
+        tag: NFCMiFareTag,
+        completion: @escaping (Bool, Data?) -> Void
     ) {
-        let uid = probe.normalizedUID.isEmpty ? nil : probe.normalizedUID
-        let surfacedProbe = NFCManager.surfacedProbeResult(for: probe, strongBambuEvidence: strongBambuEvidence)
+        let elegooReadPages = ElegooPayload.readPages
+        // Elegoo needs pages up to 35. Each read returns 4 pages (16 bytes).
+        // readPages [4,8,12,16,20,24,28,32] covers pages 4-35.
+        let elegooTotalBytes = (ElegooPayload.readPages.max()! + 4) * ElegooPayload.bytesPerPage
+        guard let elegooBuffer = NSMutableData(length: elegooTotalBytes) else {
+            completion(false, nil)
+            return
+        }
 
+        readACEPagesSequentially(session: session, tag: tag, readPages: elegooReadPages, index: 0, buffer: elegooBuffer) { [weak self] error in
+            guard let self = self else { return }
+
+            if error != nil {
+                completion(false, nil)
+                return
+            }
+
+            let elegooBytes = [UInt8](elegooBuffer as Data)
+            if let tagData = TagFormatService.shared.decodeElegoo(pages: elegooBytes) {
+                let uid = self.normalizedUID(from: tag)
+                let result = ScanResult(
+                    cardUID: uid,
+                    tagData: tagData,
+                    format: .elegoo
+                )
+                session.alertMessage = "Tag read successfully! (ELEGOO)"
+                session.invalidate()
+                DispatchQueue.main.async { self.scanResult = result; self.isScanning = false }
+                completion(true, nil)
+                return
+            }
+
+            completion(false, elegooBuffer as Data)
+        }
+    }
+
+    /// Emit a generic UID-only result for any tag whose UID could be read.
+    private func emitUIDOnlyResult(
+        session: NFCTagReaderSession,
+        tag: NFCMiFareTag,
+        alertMessage: String,
+        rawPageLogBytes: [UInt8]? = nil
+    ) {
+        let uid = normalizedUID(from: tag)
         let result = ScanResult(
             cardUID: uid,
             tagData: nil,
             format: nil,
-            bambuProbe: surfacedProbe
+            rawPageLogBytes: rawPageLogBytes
         )
-        session.alertMessage = "\(surfacedProbe.displayLabel) detected. UID captured."
+        session.alertMessage = alertMessage
         session.invalidate()
         DispatchQueue.main.async { self.scanResult = result; self.isScanning = false }
     }
 
-    /// Emit a UID-only result for unknown-but-readable tags (non-encrypted fallback).
-    private func emitUnknownReadableResult(session: NFCTagReaderSession, probe: BambuTagProbeResult) {
-        let uid = probe.normalizedUID.isEmpty ? nil : probe.normalizedUID
-        let surfacedProbe = NFCManager.unknownReadableProbeResult(for: probe)
-
-        let result = ScanResult(
-            cardUID: uid,
-            tagData: nil,
-            format: nil,
-            bambuProbe: surfacedProbe
-        )
-        session.alertMessage = "Unknown tag format detected. UID captured."
-        session.invalidate()
-        DispatchQueue.main.async { self.scanResult = result; self.isScanning = false }
+    private func trimmedRawPageLogBytes(from data: Data?) -> [UInt8]? {
+        guard let data, !data.isEmpty else { return nil }
+        let bytes = [UInt8](data)
+        let lastNonZeroIndex = bytes.lastIndex(where: { $0 != 0 })
+        guard let lastNonZeroIndex else { return nil }
+        return Array(bytes[...lastNonZeroIndex])
     }
 
-    // MARK: - NDEF Write (OpenSpool, OpenPrintTag, OpenTag3D)
+    // MARK: - NDEF Write (OpenSpool, OpenTag3D)
 
     private func handleNDEFWrite(session: NFCNDEFReaderSession, tag: NFCNDEFTag, status: NFCNDEFStatus, capacity: Int) {
         guard status == .readWrite else {
@@ -428,15 +495,7 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
             payload: payloadData
         )
 
-        var records = [payload]
-        if format == .openPrintTag,
-           let tagURL = dataToWrite.tagURL,
-           !tagURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           let urlPayload = makeOpenPrintTagURLPayload(from: tagURL) {
-            records.insert(urlPayload, at: 0)
-        }
-
-        let message = NFCNDEFMessage(records: records)
+        let message = NFCNDEFMessage(records: [payload])
 
         // Check tag capacity before writing
         let messageLength = message.length
@@ -531,9 +590,19 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
                 return
             }
 
+            guard Self.isValidRawReadResponse(data) else {
+                let responseError = NSError(
+                    domain: "NFCManager",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Unexpected raw read response length: \(data.count)"]
+                )
+                completion(responseError)
+                return
+            }
+
             // Copy returned bytes into the buffer at the correct offset
             let startByte = page * AnycubicACEPayload.bytesPerPage
-            let copyLen = min(data.count, 16)
+            let copyLen = 16
             let range = NSRange(location: startByte, length: min(copyLen, buffer.length - startByte))
             if range.length > 0 {
                 data.withUnsafeBytes { ptr in
@@ -586,44 +655,35 @@ class NFCManager: NSObject, ObservableObject, NFCNDEFReaderSessionDelegate, NFCT
     /// Maps a MIME type string to a `ScanResult.DetectedFormat`.
     private func detectedFormat(from mimeType: String?) -> ScanResult.DetectedFormat? {
         guard let mimeType = mimeType?.lowercased() else { return nil }
-        if mimeType.contains("openspool")    { return .openSpool }
-        if mimeType.contains("openprinttag") { return .openPrintTag }
-        if mimeType.contains("opentag3d")    { return .openTag3D }
+        if mimeType.contains("openspool") { return .openSpool }
+        if mimeType.contains("opentag3d") { return .openTag3D }
         return nil
     }
 
-    static func surfacedProbeResult(for probe: BambuTagProbeResult, strongBambuEvidence: Bool) -> BambuTagProbeResult {
-        let isLikelyBambu = strongBambuEvidence && probe.couldBeBambu
-        let displayLabel = isLikelyBambu ? "Bambu Lab (encrypted)" : "Unknown or encrypted tag"
-        return BambuTagProbeResult(
-            couldBeBambu: probe.couldBeBambu,
-            dataEncrypted: true,
-            normalizedUID: probe.normalizedUID,
-            displayLabel: displayLabel
-        )
+    /// Normalizes a MiFare tag identifier to a lowercase hex string.
+    private func normalizedUID(from tag: NFCMiFareTag) -> String? {
+        let bytes = [UInt8](tag.identifier)
+        let hex = bytes.map { String(format: "%02x", $0) }.joined()
+        return hex.isEmpty ? nil : hex
     }
 
-    static func unknownReadableProbeResult(for probe: BambuTagProbeResult) -> BambuTagProbeResult {
-        BambuTagProbeResult(
-            couldBeBambu: false,
-            dataEncrypted: false,
-            normalizedUID: probe.normalizedUID,
-            displayLabel: "Unknown tag format"
-        )
+    static func isValidRawReadResponse(_ data: Data) -> Bool {
+        data.count == 16
     }
 
-    private func makeOpenPrintTagURLPayload(from urlString: String) -> NFCNDEFPayload? {
-        guard let encoded = urlString.data(using: .utf8),
-              let typeData = Self.openPrintTagURLMIMEType.data(using: .utf8) else {
-            return nil
+    static func shouldTryACEFallback(afterElegooFailure: Bool) -> Bool {
+        afterElegooFailure
+    }
+
+    static func rawReadFollowupAction(
+        elegooReadSucceeded: Bool,
+        shouldTryACEFallback: Bool
+    ) -> RawReadFollowupAction {
+        if elegooReadSucceeded {
+            return .stop
         }
 
-        return NFCNDEFPayload(
-            format: .media,
-            type: typeData,
-            identifier: Data(),
-            payload: encoded
-        )
+        return shouldTryACEFallback ? .tryAnycubicACE : .emitUIDOnly
     }
 }
 

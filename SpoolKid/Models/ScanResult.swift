@@ -5,15 +5,15 @@
 //  Purpose: Structured output from a single NFC scan session.
 //  Emitted by NFCManager after every successful read, regardless of tag format.
 //
-//  `tagData` is non-nil for any format whose payload was decoded (NDEF formats + ACE).
-//  `bambuProbe` is non-nil only for MIFARE tags (encrypted or plaintext NXP tags).
-//  Both may be nil if the scan succeeded at the NFC level but no payload was decoded.
+//  `tagData` is non-nil for any format whose payload was decoded (NDEF formats + ACE + Elegoo).
+//  Both `tagData` and `format` may be nil if the scan succeeded at the NFC level
+//  but no payload was decoded.
 //
-//  The Scan Result Hub (Phase 3) routes based on:
+//  The Scan Result Hub routes based on:
 //    1. tagData?.spoolmanId       → authoritative fast-path (embedded spool ID)
 //    2. cardUID present           → Spoolman lot_nr lookup
 //    3. tagData present           → heuristic FilamentMatchService scoring
-//    4. bambuProbe present        → encrypted-tag UI with UID copy affordance
+//    4. cardUID only (no tagData) → UID-only mapping UI
 //
 
 //
@@ -35,51 +35,61 @@ struct ScanResult: Sendable {
 
     // MARK: - Decoded payload
 
-    /// Decoded filament data. Non-nil for NDEF formats (OpenSpool, OpenPrintTag,
-    /// OpenTag3D) and Anycubic ACE raw pages. Nil for encrypted/unreadable tags.
+    /// Decoded filament data. Non-nil for NDEF formats (OpenSpool, OpenTag3D)
+    /// and raw page formats (Anycubic ACE, ELEGOO). Nil for unknown/unreadable tags.
     let tagData: FilamentTagData?
 
     /// Tag format that produced `tagData`. Nil when `tagData` is nil.
     let format: DetectedFormat?
 
-    // MARK: - Bambu / MIFARE Classic probe
+    /// Raw page bytes captured during unknown-format fallback reads.
+    /// Present only for debug workflows when raw reads were attempted but no format decoded.
+    let rawPageLogBytes: [UInt8]?
 
-    /// Non-nil when the scanned tag is a MIFARE-family tag.
-    /// Always present alongside `cardUID` for such tags.
-    let bambuProbe: BambuTagProbeResult?
+    init(
+        cardUID: String?,
+        tagData: FilamentTagData?,
+        format: DetectedFormat?,
+        rawPageLogBytes: [UInt8]? = nil
+    ) {
+        self.cardUID = cardUID
+        self.tagData = tagData
+        self.format = format
+        self.rawPageLogBytes = rawPageLogBytes
+    }
 
     // MARK: - Convenience
 
-    /// True when the tag was detected but its data could not be read (encrypted).
-    var isEncrypted: Bool {
-        bambuProbe?.dataEncrypted == true && tagData == nil
+    /// True when the tag was detected but its data could not be read.
+    var isUnknownFormat: Bool {
+        tagData == nil && cardUID != nil
     }
 
     /// Human-readable description of the tag for display in the hub.
     var displayLabel: String {
-        if let probe = bambuProbe {
-            return probe.displayLabel
-        }
         if let format = format {
             return format.displayName
         }
-        return "Unknown Tag"
+        if cardUID != nil {
+            return "Unknown Tag"
+        }
+        return "Unrecognized Tag"
     }
 
     // MARK: - Detected format
 
     enum DetectedFormat: Sendable {
         case openSpool
-        case openPrintTag
         case openTag3D
         case anycubicACE
+        case elegoo
 
         var displayName: String {
             switch self {
             case .openSpool:    return "OpenSpool"
-            case .openPrintTag: return "OpenPrintTag"
             case .openTag3D:    return "OpenTag3D"
             case .anycubicACE:  return "Anycubic ACE"
+            case .elegoo:       return "ELEGOO"
             }
         }
     }

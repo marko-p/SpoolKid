@@ -443,10 +443,7 @@ private struct FormatCard: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 // Format logo
-                Image(assetName)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .padding(6)
+                formatLogo
                     .frame(width: 44, height: 44)
                     .background(isSelected ? Color.accentColor.opacity(0.12) : Color(.systemGray6))
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -482,12 +479,38 @@ private struct FormatCard: View {
         .buttonStyle(.plain)
     }
 
+    @ViewBuilder
+    private var formatLogo: some View {
+        switch format {
+        case .elegoo:
+            AsyncImage(url: URL(string: "https://www.elegoo.com/cdn/shop/files/Logo_e6b0d316-e2b8-4362-9112-a9b185ebbf9b.png?v=1691652260")) { phase in
+                if let image = phase.image {
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .padding(6)
+                } else {
+                    Image(systemName: "tag")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .padding(10)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        default:
+            Image(assetName)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .padding(6)
+        }
+    }
+
     private var assetName: String {
         switch format {
         case .openSpool:    return "OpenSpoolLogo"
-        case .openPrintTag: return "OpenPrintTagLogo"
         case .openTag3D:    return "OpenTag3DLogo"
         case .anycubicACE:  return "AnycubicLogo"
+        case .elegoo:       return "ElegooLogo"
         }
     }
 
@@ -495,12 +518,12 @@ private struct FormatCard: View {
         switch format {
         case .openSpool:
             return "Snapmaker U1 with community firmware and other OpenSpool-compatible printers"
-        case .openPrintTag:
-            return "Prusa printers with NFC spool recognition"
         case .openTag3D:
             return "Community standard for 3D printing NFC tags"
         case .anycubicACE:
             return "Anycubic ACE Pro spool holder"
+        case .elegoo:
+            return "ELEGOO FDM 3D printers with RFID spool recognition"
         }
     }
 }

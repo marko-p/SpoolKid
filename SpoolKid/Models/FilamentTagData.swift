@@ -21,7 +21,7 @@ struct FilamentTagData: Codable, Identifiable, Sendable {
     var id: UUID? = UUID() // Local ID for list identification, not encoded to tag
     var name: String? // Filament Name
     var material: String
-    var subtype: String? // Material Variant (e.g., Basic, Rapid, Silk, HF)
+    var subtype: String? // Material Variant (e.g. Basic, Rapid, Silk, HF)
     var brand: String
     var colorHex: String
     var minNozzleTemp: Int
@@ -30,7 +30,6 @@ struct FilamentTagData: Codable, Identifiable, Sendable {
     var maxBedTemp: Int
     var spoolmanId: Int?
     var density: Double?
-    var openPrintTagMaterialTypeID: Int?
     var transmissionDistance: Double?
     var gtin: String?
     var manufacturedDateUnix: Int?
@@ -58,7 +57,6 @@ struct FilamentTagData: Codable, Identifiable, Sendable {
         maxBedTemp: Int,
         spoolmanId: Int? = nil,
         density: Double? = nil,
-        openPrintTagMaterialTypeID: Int? = nil,
         transmissionDistance: Double? = nil,
         gtin: String? = nil,
         manufacturedDateUnix: Int? = nil,
@@ -85,7 +83,6 @@ struct FilamentTagData: Codable, Identifiable, Sendable {
         self.maxBedTemp = maxBedTemp
         self.spoolmanId = spoolmanId
         self.density = density
-        self.openPrintTagMaterialTypeID = openPrintTagMaterialTypeID
         self.transmissionDistance = transmissionDistance
         self.gtin = gtin
         self.manufacturedDateUnix = manufacturedDateUnix
@@ -113,7 +110,6 @@ struct FilamentTagData: Codable, Identifiable, Sendable {
         case maxBedTemp = "max_bed_temp"
         case spoolmanId = "spool_id"
         case density
-        case openPrintTagMaterialTypeID = "openprinttag_material_type_id"
         case transmissionDistance = "transmission_distance"
         case gtin
         case manufacturedDateUnix = "manufactured_date"
