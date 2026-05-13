@@ -35,3 +35,8 @@ playground.xcworkspace
 # End of Xcode.gitignore
 .impeccable.md
 .opencode/
+.planning/
+findings.md
+progress.md
+task_plan.md
+docs/

@@ -21,7 +21,7 @@ struct FilamentTagData: Codable, Identifiable, Sendable {
     var id: UUID? = UUID() // Local ID for list identification, not encoded to tag
     var name: String? // Filament Name
     var material: String
-    var subtype: String? // Material Variant (e.g., Basic, Rapid, Silk, HF)
+    var subtype: String? // Material Variant (e.g. Basic, Rapid, Silk, HF)
     var brand: String
     var colorHex: String
     var minNozzleTemp: Int
@@ -29,6 +29,74 @@ struct FilamentTagData: Codable, Identifiable, Sendable {
     var minBedTemp: Int
     var maxBedTemp: Int
     var spoolmanId: Int?
+    var density: Double?
+    var transmissionDistance: Double?
+    var gtin: String?
+    var manufacturedDateUnix: Int?
+    var countryOfOrigin: String?
+    var preheatTemp: Int?
+    var dryingTemp: Int?
+    var dryingTime: Int?
+    var nominalNetWeight: Double?
+    var actualNetWeight: Double?
+    var emptyContainerWeight: Double?
+    var materialTags: [Int]?
+    var certifications: [Int]?
+    var tagURL: String?
+
+    init(
+        id: UUID? = UUID(),
+        name: String? = nil,
+        material: String,
+        subtype: String? = nil,
+        brand: String,
+        colorHex: String,
+        minNozzleTemp: Int,
+        maxNozzleTemp: Int,
+        minBedTemp: Int,
+        maxBedTemp: Int,
+        spoolmanId: Int? = nil,
+        density: Double? = nil,
+        transmissionDistance: Double? = nil,
+        gtin: String? = nil,
+        manufacturedDateUnix: Int? = nil,
+        countryOfOrigin: String? = nil,
+        preheatTemp: Int? = nil,
+        dryingTemp: Int? = nil,
+        dryingTime: Int? = nil,
+        nominalNetWeight: Double? = nil,
+        actualNetWeight: Double? = nil,
+        emptyContainerWeight: Double? = nil,
+        materialTags: [Int]? = nil,
+        certifications: [Int]? = nil,
+        tagURL: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.material = material
+        self.subtype = subtype
+        self.brand = brand
+        self.colorHex = colorHex
+        self.minNozzleTemp = minNozzleTemp
+        self.maxNozzleTemp = maxNozzleTemp
+        self.minBedTemp = minBedTemp
+        self.maxBedTemp = maxBedTemp
+        self.spoolmanId = spoolmanId
+        self.density = density
+        self.transmissionDistance = transmissionDistance
+        self.gtin = gtin
+        self.manufacturedDateUnix = manufacturedDateUnix
+        self.countryOfOrigin = countryOfOrigin
+        self.preheatTemp = preheatTemp
+        self.dryingTemp = dryingTemp
+        self.dryingTime = dryingTime
+        self.nominalNetWeight = nominalNetWeight
+        self.actualNetWeight = actualNetWeight
+        self.emptyContainerWeight = emptyContainerWeight
+        self.materialTags = materialTags
+        self.certifications = certifications
+        self.tagURL = tagURL
+    }
     
     enum CodingKeys: String, CodingKey {
         case name
@@ -41,6 +109,20 @@ struct FilamentTagData: Codable, Identifiable, Sendable {
         case minBedTemp = "min_bed_temp"
         case maxBedTemp = "max_bed_temp"
         case spoolmanId = "spool_id"
+        case density
+        case transmissionDistance = "transmission_distance"
+        case gtin
+        case manufacturedDateUnix = "manufactured_date"
+        case countryOfOrigin = "country_of_origin"
+        case preheatTemp = "preheat_temperature"
+        case dryingTemp = "drying_temperature"
+        case dryingTime = "drying_time"
+        case nominalNetWeight = "nominal_netto_full_weight"
+        case actualNetWeight = "actual_netto_full_weight"
+        case emptyContainerWeight = "empty_container_weight"
+        case materialTags = "material_tags"
+        case certifications
+        case tagURL = "tag_url"
     }
     
     // MARK: - Validation

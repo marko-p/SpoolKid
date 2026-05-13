@@ -32,6 +32,26 @@ struct ManageVendorsView: View {
             return searchString.localizedCaseInsensitiveContains(searchText)
         }
     }
+
+    private func vendorSummary(_ vendor: SpoolmanVendor) -> String? {
+        var parts: [String] = []
+
+        if let externalId = vendor.externalId,
+           !externalId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            parts.append("ID: \(externalId)")
+        }
+
+        if let weight = vendor.emptySpoolWeight {
+            parts.append(String(format: "Empty spool: %.1f g", weight))
+        }
+
+        if let comment = vendor.comment,
+           !comment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            parts.append(comment)
+        }
+
+        return parts.isEmpty ? nil : parts.joined(separator: " • ")
+    }
     
     var body: some View {
         List {
@@ -67,9 +87,18 @@ struct ManageVendorsView: View {
                     Button(action: {
                         vendorToEdit = vendor
                     }) {
-                        Text(vendor.name)
-                            .font(.headline)
-                            .lineLimit(1)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(vendor.name)
+                                .font(.headline)
+                                .lineLimit(1)
+
+                            if let summary = vendorSummary(vendor) {
+                                Text(summary)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+                        }
                     }
                 }
                 .onDelete { indexSet in
@@ -95,10 +124,14 @@ struct ManageVendorsView: View {
             }
         }
         .sheet(isPresented: $showingAddSheet) {
-            VendorFormView(service: spoolManService, baseUrl: spoolmanUrl)
+            NavigationStack {
+                VendorFormView(service: spoolManService, baseUrl: spoolmanUrl)
+            }
         }
         .sheet(item: $vendorToEdit) { vendor in
-            VendorFormView(service: spoolManService, baseUrl: spoolmanUrl, vendorToEdit: vendor)
+            NavigationStack {
+                VendorFormView(service: spoolManService, baseUrl: spoolmanUrl, vendorToEdit: vendor)
+            }
         }
         .refreshable {
             await spoolManService.fetchVendors(baseUrl: spoolmanUrl)

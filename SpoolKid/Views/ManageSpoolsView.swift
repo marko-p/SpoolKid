@@ -28,7 +28,7 @@ struct ManageSpoolsView: View {
             return spoolManService.spools
         }
         return spoolManService.spools.filter { spool in
-            let searchString = "\(spool.filament.name ?? "") \(spool.filament.vendor?.name ?? "") \(spool.filament.material ?? "") \(spool.id)"
+            let searchString = "\(spool.filament.name ?? "") \(spool.filament.vendor?.name ?? "") \(spool.filament.material ?? "") \(spool.location ?? "") \(spool.id)"
             return searchString.localizedCaseInsensitiveContains(searchText)
         }
     }
@@ -117,10 +117,14 @@ struct ManageSpoolsView: View {
             }
         }
         .sheet(isPresented: $showingAddSheet) {
-            SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl)
+            NavigationStack {
+                SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl)
+            }
         }
         .sheet(item: $spoolToEdit) { spool in
-            SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl, spoolToEdit: spool)
+            NavigationStack {
+                SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl, spoolToEdit: spool)
+            }
         }
         .refreshable {
             await spoolManService.fetchSpools(baseUrl: spoolmanUrl)

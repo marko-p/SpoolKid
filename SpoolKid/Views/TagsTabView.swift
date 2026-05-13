@@ -25,12 +25,35 @@ struct TagsTabView: View {
     @StateObject private var recentTagManager = RecentTagManager()
 
     @AppStorage("spoolman_connection_valid") private var isConnectionValid = false
+    @AppStorage(AppConfig.spoolmanPersistCardUIDKey) private var persistCardUID: Bool = false
 
     @State private var showAbout = false
     @State private var navigateToWriteFromScan = false
+    @State private var navigateToScanHub = false
     @State private var scannedTagData: FilamentTagData? = nil
+    @State private var scanResult: ScanResult? = nil
     @State private var scanPulseScale: CGFloat = 1.0
     @State private var scanPulseOpacity: Double = 0.0
+
+    enum ScanCompletionRoute: Equatable {
+        case scanHub
+        case writeTag
+        case none
+    }
+
+    static func scanCompletionRoute(
+        persistCardUID: Bool,
+        hasScanResult: Bool,
+        hasLegacyData: Bool
+    ) -> ScanCompletionRoute {
+        if hasScanResult {
+            return persistCardUID ? .scanHub : .writeTag
+        }
+        if hasLegacyData {
+            return .writeTag
+        }
+        return .none
+    }
 
     var body: some View {
         NavigationStack {
@@ -129,6 +152,11 @@ struct TagsTabView: View {
                     .popoverTip(AboutTip())
                 }
             }
+            .navigationDestination(isPresented: $navigateToScanHub) {
+                if let result = scanResult {
+                    ScanResultHubView(result: result)
+                }
+            }
             .navigationDestination(isPresented: $navigateToWriteFromScan) {
                 WriteTagView(initialData: scannedTagData)
             }
@@ -143,10 +171,31 @@ struct TagsTabView: View {
                     startScanPulse()
                 } else {
                     stopScanPulse()
-                    if let data = nfcManager.scannedData {
-                        scannedTagData = data
+
+                    let route = Self.scanCompletionRoute(
+                        persistCardUID: persistCardUID,
+                        hasScanResult: nfcManager.scanResult != nil,
+                        hasLegacyData: nfcManager.scannedData != nil
+                    )
+
+                    switch route {
+                    case .scanHub:
+                        if let result = nfcManager.scanResult {
+                            scanResult = result
+                            navigateToScanHub = true
+                        }
+                    case .writeTag:
+                        scannedTagData = nfcManager.scanResult?.tagData ?? nfcManager.scannedData
                         navigateToWriteFromScan = true
+                    case .none:
+                        break
                     }
+                }
+            }
+            .onChange(of: navigateToScanHub) { _, isNavigating in
+                if !isNavigating {
+                    scanResult = nil
+                    nfcManager.scanResult = nil
                 }
             }
             .onChange(of: navigateToWriteFromScan) { _, isNavigating in

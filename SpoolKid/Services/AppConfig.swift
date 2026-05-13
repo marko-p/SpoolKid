@@ -39,7 +39,71 @@ nonisolated struct AppConfig {
     
     // Reset
     static let resetAppDataKey = "reset_app_data"              // Bool
-    
+
+    // MARK: - Tag Matching & UID Persistence
+
+    /// Whether to persist a scanned card UID back to the matched spool's lot_nr in Spoolman.
+    static let spoolmanPersistCardUIDKey = "spoolman_persist_card_uid"      // Bool, default false
+
+    // MARK: - Spoolman Field Visibility
+
+    static let visibilityVendorNameKey = "visibility_vendor_name"
+    static let visibilityVendorCommentKey = "visibility_vendor_comment"
+    static let visibilityVendorEmptySpoolWeightKey = "visibility_vendor_empty_spool_weight"
+    static let visibilityVendorExternalIdKey = "visibility_vendor_external_id"
+    static let visibilityVendorExtraKey = "visibility_vendor_extra"
+
+    static let visibilityFilamentPriceKey = "visibility_filament_price"
+    static let visibilityFilamentWeightKey = "visibility_filament_weight"
+    static let visibilityFilamentSpoolWeightKey = "visibility_filament_spool_weight"
+    static let visibilityFilamentArticleNumberKey = "visibility_filament_article_number"
+    static let visibilityFilamentCommentKey = "visibility_filament_comment"
+    static let visibilityFilamentMultiColorHexesKey = "visibility_filament_multi_color_hexes"
+    static let visibilityFilamentMultiColorDirectionKey = "visibility_filament_multi_color_direction"
+    static let visibilityFilamentExternalIdKey = "visibility_filament_external_id"
+    static let visibilityFilamentExtraKey = "visibility_filament_extra"
+
+    static let visibilitySpoolUsedWeightKey = "visibility_spool_used_weight"
+    static let visibilitySpoolCommentKey = "visibility_spool_comment"
+    static let visibilitySpoolArchivedKey = "visibility_spool_archived"
+    static let visibilitySpoolFirstUsedKey = "visibility_spool_first_used"
+    static let visibilitySpoolLastUsedKey = "visibility_spool_last_used"
+    static let visibilitySpoolExtraKey = "visibility_spool_extra"
+
+    static let visibilityNFCOpenSpoolNameKey = "visibility_nfc_opensp_name"
+    static let visibilityNFCOpenSpoolSubtypeKey = "visibility_nfc_opensp_subtype"
+    static let visibilityNFCOpenSpoolSpoolIDKey = "visibility_nfc_opensp_spool_id"
+    static let visibilityNFCOpenTag3DSubtypeKey = "visibility_nfc_ot3d_subtype"
+    static let visibilityNFCOpenTag3DNameKey = "visibility_nfc_ot3d_name"
+
+    static let fieldVisibilityDefaults: [String: Any] = [
+        visibilityVendorNameKey: true,
+        visibilityVendorCommentKey: false,
+        visibilityVendorEmptySpoolWeightKey: false,
+        visibilityVendorExternalIdKey: false,
+        visibilityVendorExtraKey: false,
+        visibilityFilamentPriceKey: false,
+        visibilityFilamentWeightKey: false,
+        visibilityFilamentSpoolWeightKey: false,
+        visibilityFilamentArticleNumberKey: false,
+        visibilityFilamentCommentKey: false,
+        visibilityFilamentMultiColorHexesKey: false,
+        visibilityFilamentMultiColorDirectionKey: false,
+        visibilityFilamentExternalIdKey: false,
+        visibilityFilamentExtraKey: false,
+        visibilitySpoolUsedWeightKey: false,
+        visibilitySpoolCommentKey: false,
+        visibilitySpoolArchivedKey: false,
+        visibilitySpoolFirstUsedKey: false,
+        visibilitySpoolLastUsedKey: false,
+        visibilitySpoolExtraKey: false,
+        visibilityNFCOpenSpoolNameKey: true,
+        visibilityNFCOpenSpoolSubtypeKey: true,
+        visibilityNFCOpenSpoolSpoolIDKey: true,
+        visibilityNFCOpenTag3DSubtypeKey: true,
+        visibilityNFCOpenTag3DNameKey: true
+    ]
+
     static let materialPresets: [String: (extruder: Int, bed: Int)] = [
         "PLA": (210, 50),
         "PLA+": (215, 60),
@@ -80,7 +144,7 @@ nonisolated struct AppConfig {
         materialPresets.keys.sorted()
     }
     
-    static let brands = ["Prusament", "Polymaker", "eSun", "Sunlu", "Bambu Lab", "Hatchbox", "Overture", "Eryone", "Amolen", "MatterHackers", "Proto-pasta", "ColorFabb", "Generic"]
+    static let brands = ["Prusament", "Polymaker", "eSun", "Sunlu", "Elegoo", "Hatchbox", "Overture", "Eryone", "Amolen", "MatterHackers", "Proto-pasta", "ColorFabb", "Generic"]
     
     static let subtypes = ["Basic", "Rapid", "HF", "Silk", "Matte", "Glossy", "Translucent", "Transparent", "Glitter", "Glow", "Carbon Fiber", "Wood", "Flexible", "Semi Flexible", "Support", "PVA"]
     
@@ -101,53 +165,5 @@ nonisolated struct AppConfig {
         // Offsets applied when deriving min/max temps from a single Spoolman temp value
         static let nozzleTempOffset = 10
         static let bedTempOffset = 5
-    }
-    
-    // MARK: - Snapmaker U1 Compatibility
-    
-    /// Material types supported by the Snapmaker U1 printer (from printtag-web).
-    static let snapmakerU1Materials: [String] = [
-        "PLA", "PETG", "ABS", "ASA", "TPU", "PA", "PA12",
-        "PC", "PEEK", "PVA", "HIPS", "PCTG",
-        "PLA-CF", "PETG-CF", "PA-CF"
-    ]
-    
-    /// Maps Spoolman/SpoolKid material names to Snapmaker U1 compatible equivalents.
-    /// Only materials that need remapping are listed; direct matches are handled separately.
-    static let snapmakerU1MaterialMapping: [String: String] = [
-        // PLA variants
-        "PLA+": "PLA",
-        // ABS variants
-        "ABS+": "ABS",
-        "ABS-T": "ABS",
-        // Nylon -> PA
-        "Nylon": "PA",
-        // Flexible -> TPU
-        "Flexible (TPU)": "TPU",
-        "Flexible (TPE 32D)": "TPU",
-        "Flexible (TPE 88A)": "TPU",
-        "Semi flexible (FPE)": "TPU",
-        // PC variants
-        "Polycarbonate (PC)": "PC",
-        "PC/ABS": "PC",
-        "PC/PBT": "PC",
-        // Carbon fiber (generic) -> PLA-CF as most common CF filament
-        "Carbon Fiber": "PLA-CF",
-    ]
-    
-    /// Attempts to map a material type to a Snapmaker U1 compatible type.
-    /// Returns the original if already compatible, mapped value if a mapping exists,
-    /// or nil if no mapping is possible (user must choose manually).
-    static func resolveSnapmakerU1Material(_ material: String) -> String? {
-        // Case-insensitive check against known U1 materials
-        if snapmakerU1Materials.contains(where: { $0.caseInsensitiveCompare(material) == .orderedSame }) {
-            // Return the canonical casing from the U1 list
-            return snapmakerU1Materials.first(where: { $0.caseInsensitiveCompare(material) == .orderedSame })
-        }
-        // Check mapping table (case-insensitive keys)
-        if let mapped = snapmakerU1MaterialMapping.first(where: { $0.key.caseInsensitiveCompare(material) == .orderedSame })?.value {
-            return mapped
-        }
-        return nil
     }
 }

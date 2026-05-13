@@ -4,7 +4,7 @@
 //
 //  Purpose: The "Spoolman" tab content — Spoolman resource management.
 //  Features:
-//  - Navigation links to Manage Spools, Manage Filaments, Manage Vendors.
+//  - Navigation links to Manage Spools, Manage Filaments, Manage Vendors, Manage Locations.
 //  - Inline "Add Spool" button next to Manage Spools.
 //  - ContentUnavailableView when no valid Spoolman connection exists.
 //  - About button in the toolbar.
@@ -53,6 +53,10 @@ struct SpoolmanTabView: View {
                             NavigationLink(destination: ManageVendorsView()) {
                                 Label("Manage Vendors", systemImage: "building.2")
                             }
+                            NavigationLink(destination: ManageLocationsView()) {
+                                Label("Manage Locations", systemImage: "mappin.and.ellipse")
+                            }
+                            .accessibilityIdentifier("spoolman.manageLocations")
                         }
                     }
                     .listStyle(InsetGroupedListStyle())
@@ -81,7 +85,9 @@ struct SpoolmanTabView: View {
                 AboutView()
             }
             .sheet(isPresented: $showingAddSpoolSheet) {
-                SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl)
+                NavigationStack {
+                    SpoolFormView(service: spoolManService, baseUrl: spoolmanUrl)
+                }
             }
         }
     }

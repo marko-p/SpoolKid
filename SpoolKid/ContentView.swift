@@ -47,9 +47,12 @@ private struct ConnectionSettingsSnapshot: Equatable {
 }
 
 struct ContentView: View {
+    private static let uiStartOnSpoolmanArgument = "-ui_start_spoolman_tab"
+
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var nfcManager = NFCManager()
     @StateObject private var spoolManService = SpoolmanService()
+    @State private var selectedTab: AppTab
     @AppStorage(AppConfig.spoolmanUrlKey) private var spoolmanUrl: String = ""
     @AppStorage(AppConfig.hasCompletedWelcomeKey) private var hasCompletedWelcome: Bool = false
     @AppStorage("spoolman_connection_valid") private var isConnectionValid: Bool = false
@@ -63,14 +66,19 @@ struct ContentView: View {
     /// Used to detect changes made in iOS Settings while the app was backgrounded.
     @State private var lastValidatedSettings: ConnectionSettingsSnapshot?
 
+    init() {
+        let shouldStartOnSpoolman = ProcessInfo.processInfo.arguments.contains(Self.uiStartOnSpoolmanArgument)
+        _selectedTab = State(initialValue: shouldStartOnSpoolman ? .spoolman : .tags)
+    }
+
     var body: some View {
-        TabView {
-            Tab("Tags", systemImage: "dot.radiowaves.left.and.right") {
+        TabView(selection: $selectedTab) {
+            Tab("Tags", systemImage: "dot.radiowaves.left.and.right", value: .tags) {
                 TagsTabView(nfcManager: nfcManager)
                     .id(tipRefreshToken)
             }
 
-            Tab("Spoolman", systemImage: "server.rack") {
+            Tab("Spoolman", systemImage: "server.rack", value: .spoolman) {
                 SpoolmanTabView(
                     spoolManService: spoolManService,
                     spoolmanUrl: spoolmanUrl

@@ -24,6 +24,7 @@ class SpoolmanService: ObservableObject {
     @Published var spools: [SpoolmanSpool] = []
     @Published var filaments: [SpoolmanFilament] = []
     @Published var vendors: [SpoolmanVendor] = []
+    @Published var locations: [String] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     
@@ -82,6 +83,12 @@ class SpoolmanService: ObservableObject {
             self?.vendors = items
         }
     }
+
+    func fetchLocations(baseUrl: String) async {
+        await fetchData(endpoint: "/api/v1/location", baseUrl: baseUrl) { [weak self] (items: [String]) in
+            self?.locations = items.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        }
+    }
     
     func testConnection(baseUrl: String) async -> Bool {
         do {
@@ -128,6 +135,37 @@ class SpoolmanService: ObservableObject {
         
         return try JSONDecoder().decode(T.self, from: data)
     }
+
+    private func sendRequestWithoutDecoding(method: String, endpoint: String, baseUrl: String, body: [String: Any]? = nil) async throws {
+        guard let url = URL(string: "\(baseUrl)\(endpoint)") else {
+            throw URLError(.badURL)
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        applyAuth(to: &request)
+
+        if let body = body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        }
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw URLError(.badServerResponse)
+        }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let message = errorJson["message"] as? String {
+                throw NSError(domain: "SpoolmanError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: message])
+            }
+
+            let bodyString = String(data: data, encoding: .utf8) ?? "No body"
+            throw NSError(domain: "SpoolmanError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Server error \(httpResponse.statusCode): \(bodyString)"])
+        }
+    }
     
     private func sendDeleteRequest(endpoint: String, baseUrl: String) async throws {
         guard let url = URL(string: "\(baseUrl)\(endpoint)") else {
@@ -146,10 +184,26 @@ class SpoolmanService: ObservableObject {
     }
 
     // Vendors
-    func addVendor(name: String, baseUrl: String) async -> SpoolmanVendor? {
+    func addVendor(
+        name: String,
+        comment: String? = nil,
+        emptySpoolWeight: Double? = nil,
+        externalId: String? = nil,
+        extra: [String: String]? = nil,
+        baseUrl: String
+    ) async -> SpoolmanVendor? {
+        self.errorMessage = nil
         do {
-            let newVendor: SpoolmanVendor = try await sendRequest(method: "POST", endpoint: "/api/v1/vendor", baseUrl: baseUrl, body: ["name": name])
+            let body = SpoolmanPayloadBuilder.vendorPayload(
+                name: name,
+                comment: comment,
+                emptySpoolWeight: emptySpoolWeight,
+                externalId: externalId,
+                extra: extra
+            )
+            let newVendor: SpoolmanVendor = try await sendRequest(method: "POST", endpoint: "/api/v1/vendor", baseUrl: baseUrl, body: body)
             self.vendors.append(newVendor)
+            self.errorMessage = nil
             return newVendor
         } catch {
             self.errorMessage = error.localizedDescription
@@ -157,14 +211,34 @@ class SpoolmanService: ObservableObject {
         }
     }
     
-    func updateVendor(id: Int, name: String, baseUrl: String) async {
+    @discardableResult
+    func updateVendor(
+        id: Int,
+        name: String?,
+        comment: String?,
+        emptySpoolWeight: Double?,
+        externalId: String?,
+        extra: [String: String]?,
+        baseUrl: String
+    ) async -> Bool {
+        self.errorMessage = nil
         do {
-            let updatedVendor: SpoolmanVendor = try await sendRequest(method: "PATCH", endpoint: "/api/v1/vendor/\(id)", baseUrl: baseUrl, body: ["name": name])
+            let body = SpoolmanPayloadBuilder.vendorPayload(
+                name: name,
+                comment: comment,
+                emptySpoolWeight: emptySpoolWeight,
+                externalId: externalId,
+                extra: extra
+            )
+            let updatedVendor: SpoolmanVendor = try await sendRequest(method: "PATCH", endpoint: "/api/v1/vendor/\(id)", baseUrl: baseUrl, body: body)
             if let index = self.vendors.firstIndex(where: { $0.id == id }) {
                 self.vendors[index] = updatedVendor
             }
+            self.errorMessage = nil
+            return true
         } catch {
             self.errorMessage = error.localizedDescription
+            return false
         }
     }
     
@@ -178,20 +252,52 @@ class SpoolmanService: ObservableObject {
     }
     
     // Filaments
-    func addFilament(name: String?, vendorId: Int?, material: String?, colorHex: String?, density: Double?, diameter: Double?, extruderTemp: Int?, bedTemp: Int?, baseUrl: String) async -> SpoolmanFilament? {
-        var body: [String: Any] = [:]
-        if let name = name { body["name"] = name }
-        if let vendorId = vendorId { body["vendor_id"] = vendorId }
-        if let material = material { body["material"] = material }
-        if let colorHex = colorHex { body["color_hex"] = colorHex }
-        if let density = density { body["density"] = density }
-        if let diameter = diameter { body["diameter"] = diameter }
-        if let extruderTemp = extruderTemp { body["settings_extruder_temp"] = extruderTemp }
-        if let bedTemp = bedTemp { body["settings_bed_temp"] = bedTemp }
-        
+    func addFilament(
+        name: String?,
+        vendorId: Int?,
+        material: String?,
+        colorHex: String?,
+        density: Double?,
+        diameter: Double?,
+        extruderTemp: Int?,
+        bedTemp: Int?,
+        price: Double? = nil,
+        weight: Double? = nil,
+        spoolWeight: Double? = nil,
+        articleNumber: String? = nil,
+        comment: String? = nil,
+        multiColorHexes: String? = nil,
+        multiColorDirection: String? = nil,
+        externalId: String? = nil,
+        extra: [String: String]? = nil,
+        baseUrl: String
+    ) async -> SpoolmanFilament? {
+        self.errorMessage = nil
+
+        let body = SpoolmanPayloadBuilder.filamentPayload(
+            name: name,
+            vendorId: vendorId,
+            material: material,
+            price: price,
+            density: density,
+            diameter: diameter,
+            weight: weight,
+            spoolWeight: spoolWeight,
+            articleNumber: articleNumber,
+            comment: comment,
+            extruderTemp: extruderTemp,
+            bedTemp: bedTemp,
+            colorHex: colorHex,
+            multiColorHexes: multiColorHexes,
+            multiColorDirection: multiColorDirection,
+            externalId: externalId,
+            extra: extra
+        )
+
         do {
             let newFilament: SpoolmanFilament = try await sendRequest(method: "POST", endpoint: "/api/v1/filament", baseUrl: baseUrl, body: body)
             self.filaments.append(newFilament)
+            self.errorMessage = nil
             return newFilament
         } catch {
             self.errorMessage = error.localizedDescription
@@ -199,24 +305,65 @@ class SpoolmanService: ObservableObject {
         }
     }
     
-    func updateFilament(id: Int, name: String?, vendorId: Int?, material: String?, colorHex: String?, density: Double?, diameter: Double?, extruderTemp: Int?, bedTemp: Int?, baseUrl: String) async {
-        var body: [String: Any] = [:]
-        if let name = name { body["name"] = name }
-        if let vendorId = vendorId { body["vendor_id"] = vendorId }
-        if let material = material { body["material"] = material }
-        if let colorHex = colorHex { body["color_hex"] = colorHex }
-        if let density = density { body["density"] = density }
-        if let diameter = diameter { body["diameter"] = diameter }
-        if let extruderTemp = extruderTemp { body["settings_extruder_temp"] = extruderTemp }
-        if let bedTemp = bedTemp { body["settings_bed_temp"] = bedTemp }
-        
+    @discardableResult
+    func updateFilament(
+        id: Int,
+        name: String?,
+        vendorId: Int?,
+        material: String?,
+        colorHex: String?,
+        density: Double?,
+        diameter: Double?,
+        extruderTemp: Int?,
+        bedTemp: Int?,
+        price: Double? = nil,
+        weight: Double? = nil,
+        spoolWeight: Double? = nil,
+        articleNumber: String? = nil,
+        comment: String? = nil,
+        multiColorHexes: String? = nil,
+        multiColorDirection: String? = nil,
+        externalId: String? = nil,
+        extra: [String: String]? = nil,
+        clearFieldKeys: Set<String> = [],
+        baseUrl: String
+    ) async -> Bool {
+        self.errorMessage = nil
+
+        var body = SpoolmanPayloadBuilder.filamentPayload(
+            name: name,
+            vendorId: vendorId,
+            material: material,
+            price: price,
+            density: density,
+            diameter: diameter,
+            weight: weight,
+            spoolWeight: spoolWeight,
+            articleNumber: articleNumber,
+            comment: comment,
+            extruderTemp: extruderTemp,
+            bedTemp: bedTemp,
+            colorHex: colorHex,
+            multiColorHexes: multiColorHexes,
+            multiColorDirection: multiColorDirection,
+            externalId: externalId,
+            extra: extra
+        )
+
+        for key in clearFieldKeys {
+            body[key] = NSNull()
+        }
+
         do {
             let updatedFilament: SpoolmanFilament = try await sendRequest(method: "PATCH", endpoint: "/api/v1/filament/\(id)", baseUrl: baseUrl, body: body)
             if let index = self.filaments.firstIndex(where: { $0.id == id }) {
                 self.filaments[index] = updatedFilament
             }
+            self.errorMessage = nil
+            return true
         } catch {
             self.errorMessage = error.localizedDescription
+            return false
         }
     }
     
@@ -230,17 +377,44 @@ class SpoolmanService: ObservableObject {
     }
     
     // Spools
-    func addSpool(filamentId: Int, remainingWeight: Double?, initialWeight: Double?, spoolWeight: Double?, usedWeight: Double?, price: Double?, baseUrl: String) async -> SpoolmanSpool? {
-        var body: [String: Any] = ["filament_id": filamentId]
-        if let remainingWeight = remainingWeight { body["remaining_weight"] = remainingWeight }
-        if let initialWeight = initialWeight { body["initial_weight"] = initialWeight }
-        if let spoolWeight = spoolWeight { body["spool_weight"] = spoolWeight }
-        if let usedWeight = usedWeight { body["used_weight"] = usedWeight }
-        if let price = price { body["price"] = price }
-        
+    func addSpool(
+        filamentId: Int,
+        remainingWeight: Double?,
+        initialWeight: Double?,
+        spoolWeight: Double?,
+        usedWeight: Double?,
+        price: Double?,
+        location: SpoolmanPatchValue<String> = .ignore,
+        lotNr: String? = nil,
+        comment: String? = nil,
+        archived: Bool? = nil,
+        firstUsed: String? = nil,
+        lastUsed: String? = nil,
+        extra: [String: String]? = nil,
+        baseUrl: String
+    ) async -> SpoolmanSpool? {
+        self.errorMessage = nil
+
+        let body = SpoolmanPayloadBuilder.spoolPayload(
+            filamentId: filamentId,
+            firstUsed: firstUsed,
+            lastUsed: lastUsed,
+            price: price,
+            initialWeight: initialWeight,
+            spoolWeight: spoolWeight,
+            remainingWeight: remainingWeight,
+            usedWeight: usedWeight,
+            location: location,
+            lotNr: lotNr,
+            comment: comment,
+            archived: archived,
+            extra: extra
+        )
+
         do {
             let newSpool: SpoolmanSpool = try await sendRequest(method: "POST", endpoint: "/api/v1/spool", baseUrl: baseUrl, body: body)
             self.spools.append(newSpool)
+            self.errorMessage = nil
             return newSpool
         } catch {
             self.errorMessage = error.localizedDescription
@@ -248,25 +422,136 @@ class SpoolmanService: ObservableObject {
         }
     }
     
-    func updateSpool(id: Int, filamentId: Int?, remainingWeight: Double?, initialWeight: Double?, spoolWeight: Double?, usedWeight: Double?, price: Double?, baseUrl: String) async {
-        var body: [String: Any] = [:]
-        if let filamentId = filamentId { body["filament_id"] = filamentId }
-        if let remainingWeight = remainingWeight { body["remaining_weight"] = remainingWeight }
-        if let initialWeight = initialWeight { body["initial_weight"] = initialWeight }
-        if let spoolWeight = spoolWeight { body["spool_weight"] = spoolWeight }
-        if let usedWeight = usedWeight { body["used_weight"] = usedWeight }
-        if let price = price { body["price"] = price }
-        
+    @discardableResult
+    func updateSpool(
+        id: Int,
+        filamentId: Int?,
+        remainingWeight: Double?,
+        initialWeight: Double?,
+        spoolWeight: Double?,
+        usedWeight: Double?,
+        price: Double?,
+        location: SpoolmanPatchValue<String> = .ignore,
+        lotNr: String? = nil,
+        comment: String? = nil,
+        archived: Bool? = nil,
+        firstUsed: String? = nil,
+        lastUsed: String? = nil,
+        extra: [String: String]? = nil,
+        clearFieldKeys: Set<String> = [],
+        baseUrl: String
+    ) async -> Bool {
+        self.errorMessage = nil
+
+        var body = SpoolmanPayloadBuilder.spoolPayload(
+            filamentId: filamentId,
+            firstUsed: firstUsed,
+            lastUsed: lastUsed,
+            price: price,
+            initialWeight: initialWeight,
+            spoolWeight: spoolWeight,
+            remainingWeight: remainingWeight,
+            usedWeight: usedWeight,
+            location: location,
+            lotNr: lotNr,
+            comment: comment,
+            archived: archived,
+            extra: extra
+        )
+
+        for key in clearFieldKeys {
+            body[key] = NSNull()
+        }
+
         do {
             let updatedSpool: SpoolmanSpool = try await sendRequest(method: "PATCH", endpoint: "/api/v1/spool/\(id)", baseUrl: baseUrl, body: body)
             if let index = self.spools.firstIndex(where: { $0.id == id }) {
                 self.spools[index] = updatedSpool
             }
+            self.errorMessage = nil
+            return true
         } catch {
             self.errorMessage = error.localizedDescription
+            return false
         }
     }
     
+    /// Returns the first spool whose `lot_nr` contains the given card UID.
+    /// Searches the in-memory `spools` array; call `fetchSpools` first to ensure it is current.
+    func findSpool(byCardUID uid: String) -> SpoolmanSpool? {
+        let normalized = SpoolMappingService.normalizeUID(uid)
+        return spools.first { spool in
+            SpoolMappingService.cardUIDs(in: spool.lotNr).contains(normalized)
+        }
+    }
+
+    /// Persists a new `lot_nr` value for a spool via a PATCH request.
+    /// On success, updates the in-memory spool entry.
+    @discardableResult
+    func setLotNr(spoolId: Int, lotNr: String, baseUrl: String) async -> Bool {
+        do {
+            let updated: SpoolmanSpool = try await sendRequest(
+                method: "PATCH",
+                endpoint: "/api/v1/spool/\(spoolId)",
+                baseUrl: baseUrl,
+                body: ["lot_nr": lotNr]
+            )
+            if let index = spools.firstIndex(where: { $0.id == spoolId }) {
+                spools[index] = updated
+            }
+            return true
+        } catch {
+            self.errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Clears `lot_nr` by setting it to null via a PATCH request.
+    /// On success, updates the in-memory spool entry.
+    @discardableResult
+    func clearLotNr(spoolId: Int, baseUrl: String) async -> Bool {
+        do {
+            let updated: SpoolmanSpool = try await sendRequest(
+                method: "PATCH",
+                endpoint: "/api/v1/spool/\(spoolId)",
+                baseUrl: baseUrl,
+                body: ["lot_nr": NSNull()]
+            )
+            if let index = spools.firstIndex(where: { $0.id == spoolId }) {
+                spools[index] = updated
+            }
+            return true
+        } catch {
+            self.errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    @discardableResult
+    func renameLocation(currentName: String, newName: String, baseUrl: String) async -> Bool {
+        var allowedCharacters = CharacterSet.urlPathAllowed
+        allowedCharacters.remove(charactersIn: "/")
+
+        guard let encoded = currentName.addingPercentEncoding(withAllowedCharacters: allowedCharacters) else {
+            return false
+        }
+
+        do {
+            try await sendRequestWithoutDecoding(
+                method: "PATCH",
+                endpoint: "/api/v1/location/\(encoded)",
+                baseUrl: baseUrl,
+                body: ["name": newName]
+            )
+            await fetchSpools(baseUrl: baseUrl)
+            await fetchLocations(baseUrl: baseUrl)
+            return true
+        } catch {
+            self.errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
     func deleteSpool(id: Int, baseUrl: String) async {
         do {
             try await sendDeleteRequest(endpoint: "/api/v1/spool/\(id)", baseUrl: baseUrl)

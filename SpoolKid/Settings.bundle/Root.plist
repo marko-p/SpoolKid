@@ -13,7 +13,7 @@
 			<key>Title</key>
 			<string>NFC Tag Options</string>
 			<key>FooterText</key>
-			<string>Choose the NFC tag format for writing. Reading auto-detects the format. Anycubic ACE uses raw page writes (non-NDEF) for compatibility with ACE Pro spool holders.</string>
+			<string>Choose the NFC tag format for writing. Reading auto-detects the format. Anycubic ACE and ELEGOO use raw page writes (non-NDEF) for compatibility with their respective spool holders.</string>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -27,27 +27,17 @@
 			<key>Titles</key>
 			<array>
 				<string>OpenSpool</string>
-				<string>OpenPrintTag</string>
 				<string>OpenTag3D</string>
 				<string>Anycubic ACE</string>
+				<string>ELEGOO</string>
 			</array>
 			<key>Values</key>
 			<array>
 				<string>openspool</string>
-				<string>openprinttag</string>
 				<string>opentag3d</string>
 				<string>anycubic_ace</string>
+				<string>elegoo</string>
 			</array>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
-			<key>Title</key>
-			<string>Write Spool ID to Tag</string>
-			<key>Key</key>
-			<string>write_spool_id</string>
-			<key>DefaultValue</key>
-			<true/>
 		</dict>
 		<dict>
 			<key>Type</key>
@@ -75,24 +65,13 @@
 				<integer>100</integer>
 			</array>
 		</dict>
-		<!-- Printer Compatibility -->
 		<dict>
 			<key>Type</key>
-			<string>PSGroupSpecifier</string>
+			<string>PSChildPaneSpecifier</string>
 			<key>Title</key>
-			<string>Printer Compatibility</string>
-			<key>FooterText</key>
-			<string>When enabled, material types are validated against the Snapmaker U1's supported list before writing to NFC. Incompatible types are auto-mapped when possible. Only applies when Write Format is set to OpenSpool.</string>
-		</dict>
-		<dict>
-			<key>Type</key>
-			<string>PSToggleSwitchSpecifier</string>
-			<key>Title</key>
-			<string>Snapmaker U1 Compatibility</string>
-			<key>Key</key>
-			<string>snapmaker_u1_compat</string>
-			<key>DefaultValue</key>
-			<false/>
+			<string>NFC Field Visibility</string>
+			<key>File</key>
+			<string>NFCFieldVisibility</string>
 		</dict>
 		<!-- Spoolman Connection -->
 		<dict>
@@ -213,6 +192,14 @@
 		</dict>
 		<dict>
 			<key>Type</key>
+			<string>PSChildPaneSpecifier</string>
+			<key>Title</key>
+			<string>Spoolman Field Visibility</string>
+			<key>File</key>
+			<string>SpoolmanFieldVisibility</string>
+		</dict>
+		<dict>
+			<key>Type</key>
 			<string>PSToggleSwitchSpecifier</string>
 			<key>Title</key>
 			<string>Remember Last Spool Data</string>
@@ -240,6 +227,37 @@
 			<string>confirm_before_delete</string>
 			<key>DefaultValue</key>
 			<true/>
+		</dict>
+		<!-- Tag - Spoolman Mapping -->
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>Tag - Spoolman Mapping</string>
+			<key>FooterText</key>
+			<string>Controls how tag data maps to Spoolman. SpoolKid always shows candidate matches for confirmation and never auto-accepts.</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Write Spool ID to Tag</string>
+			<key>Key</key>
+			<string>write_spool_id</string>
+			<key>DefaultValue</key>
+			<true/>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Spoolman Auto Register</string>
+			<key>FooterText</key>
+			<string>Saves the tag UID to Spoolman's lot_nr field to map the physical tag to a spoolman spool. Can be used as an alternative to writing the spool_id to the tag.</string>
+			<key>Key</key>
+			<string>spoolman_persist_card_uid</string>
+			<key>DefaultValue</key>
+			<false/>
 		</dict>
 		<!-- Reset -->
 		<dict>

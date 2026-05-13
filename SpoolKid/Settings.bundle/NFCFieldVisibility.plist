@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+	<dict>
+		<key>Type</key>
+		<string>PSGroupSpecifier</string>
+		<key>Title</key>
+		<string>NFC Field Visibility</string>
+		<key>FooterText</key>
+		<string>Choose which optional fields appear in Create Tag for each NFC format.</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSChildPaneSpecifier</string>
+		<key>Title</key>
+		<string>OpenSpool Fields</string>
+		<key>File</key>
+		<string>OpenSpoolVisibility</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSChildPaneSpecifier</string>
+		<key>Title</key>
+		<string>OpenTag3D Fields</string>
+		<key>File</key>
+		<string>OpenTag3DVisibility</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSChildPaneSpecifier</string>
+		<key>Title</key>
+		<string>Anycubic ACE Fields</string>
+		<key>File</key>
+		<string>AnycubicACEVisibility</string>
+	</dict>
+	</array>
+</dict>
+</plist>

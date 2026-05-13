@@ -40,13 +40,15 @@ extension FilamentTagData {
         return FilamentTagData(
             name: spool.filament.name,
             material: spool.filament.material ?? AppConfig.Defaults.material,
+            subtype: spool.filament.name.map { SubtypeOptionService.derive(from: $0) },
             brand: spool.filament.vendor?.name ?? AppConfig.Defaults.brand,
             colorHex: spool.filament.colorHex ?? AppConfig.Defaults.colorHex,
             minNozzleTemp: minNozzle,
             maxNozzleTemp: maxNozzle,
             minBedTemp: minBed,
             maxBedTemp: maxBed,
-            spoolmanId: writeSpoolId ? spool.id : nil
+            spoolmanId: writeSpoolId ? spool.id : nil,
+            density: spool.filament.density
         )
     }
 }

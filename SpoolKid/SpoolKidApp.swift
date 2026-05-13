@@ -30,13 +30,15 @@ struct SpoolKidApp: App {
             AppConfig.authTokenKey: "",
             AppConfig.nfcTagFormatKey: TagFormat.openSpool.rawValue,
             "write_spool_id": true,
-            "snapmaker_u1_compat": false,
             "recent_tags_limit": 20,
             "remember_spool_data": false,
             "remember_filament_data": false,
             "confirm_before_delete": true,
-            AppConfig.resetAppDataKey: false
+            AppConfig.resetAppDataKey: false,
+            // Tag Matching & UID Persistence
+            AppConfig.spoolmanPersistCardUIDKey: false
         ])
+        UserDefaults.standard.register(defaults: AppConfig.fieldVisibilityDefaults)
         
         // Handle the "Reset All Data on Next Launch" flag from Settings.bundle
         if UserDefaults.standard.bool(forKey: AppConfig.resetAppDataKey) {

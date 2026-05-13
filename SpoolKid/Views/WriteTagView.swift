@@ -24,8 +24,9 @@ struct WriteTagView: View {
     
     @AppStorage(AppConfig.spoolmanUrlKey) private var spoolmanUrl: String = AppConfig.defaultSpoolmanUrl
     @AppStorage("write_spool_id") private var writeSpoolId: Bool = true
-    @AppStorage("snapmaker_u1_compat") private var snapmakerU1Compat: Bool = false
     @AppStorage(AppConfig.nfcTagFormatKey) private var nfcTagFormat: String = TagFormat.openSpool.rawValue
+    @State private var selectedFormatOverride: TagFormat = .openSpool
+    private let nfcVisibilityStore = NFCFieldVisibilityStore()
     
     // Form Fields
     @State private var name: String = ""
@@ -39,6 +40,8 @@ struct WriteTagView: View {
     @State private var minBedTemp: Int = AppConfig.Defaults.minBedTemp
     @State private var maxBedTemp: Int = AppConfig.Defaults.maxBedTemp
     @State private var spoolmanId: Int? = nil
+    @State private var spoolmanIdInput: String = ""
+    @State private var tagURLInput: String = ""
     
     @State private var selectedSpoolId: Int?
     
@@ -47,96 +50,125 @@ struct WriteTagView: View {
     @State private var successBannerScale: CGFloat = 0.85
     @State private var colorSwatchScale: CGFloat = 1.0
     
-    // Snapmaker U1 compatibility state
-    @State private var showCompatPicker = false
-    @State private var incompatibleMaterial = ""
-    @State private var pendingTagData: FilamentTagData? = nil
-    
     var initialData: FilamentTagData?
     
     let brands = AppConfig.brands
-    let subtypes = AppConfig.subtypes
     
-    /// Derived property: is Snapmaker U1 compat active for the current format?
-    private var isU1CompatActive: Bool {
-        snapmakerU1Compat && nfcTagFormat == TagFormat.openSpool.rawValue
+    private var visibleFieldDefinitions: [NFCFieldDefinition] {
+        WriteTagFormAssembler.visibleFields(format: selectedFormatOverride, visibilityStore: nfcVisibilityStore)
+    }
+
+    private var visibleFieldIDs: Set<String> {
+        Set(visibleFieldDefinitions.map(\.id))
     }
     
-    /// When Snapmaker U1 compat is enabled (and format is OpenSpool), show only U1-compatible materials.
     private var availableMaterials: [String] {
-        isU1CompatActive ? AppConfig.snapmakerU1Materials : AppConfig.materials
+        AppConfig.materials
     }
     
     var body: some View {
         Form {
+            Section("Tag Format") {
+                Picker("Format", selection: $selectedFormatOverride) {
+                    ForEach(TagFormat.allCases) { format in
+                        Text(format.displayName).tag(format)
+                    }
+                }
+            }
+
             Section("Filament Details") {
                 // Material Type
-                HStack {
-                    Text("Material")
-                        .frame(width: 80, alignment: .leading)
-                    TextField("Type", text: $material)
-                    Menu {
-                        ForEach(availableMaterials, id: \.self) { mat in
-                            Button(mat) {
-                                material = mat
+                if visibleFieldIDs.contains("material") {
+                    HStack {
+                        Text("Material")
+                            .frame(width: 80, alignment: .leading)
+                        TextField("Type", text: $material)
+                        Menu {
+                            ForEach(availableMaterials, id: \.self) { mat in
+                                Button(mat) {
+                                    material = mat
+                                }
                             }
+                        } label: {
+                        Image(systemName: "chevron.down.circle")
+                                .foregroundColor(.accentColor)
                         }
-                    } label: {
-                    Image(systemName: "chevron.down.circle")
-                            .foregroundColor(.accentColor)
                     }
                 }
                 
                 // Color
-                HStack {
-                    Text("Color")
-                        .frame(width: 80, alignment: .leading)
-                    
-                    TextField("Hex", text: $colorHex)
-                        .onChange(of: colorHex) { _, newValue in
-                            if let newColor = Color(hex: newValue) {
-                                color = newColor
+                if visibleFieldIDs.contains("color_hex") {
+                    HStack {
+                        Text("Color")
+                            .frame(width: 80, alignment: .leading)
+                        
+                        TextField("Hex", text: $colorHex)
+                            .onChange(of: colorHex) { _, newValue in
+                                if let newColor = Color(hex: newValue) {
+                                    color = newColor
+                                    bounceColorSwatch()
+                                }
+                            }
+                            .textInputAutocapitalization(.characters)
+                            .disableAutocorrection(true)
+                        
+                        Circle()
+                            .fill(color)
+                            .frame(width: 28, height: 28)
+                            .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
+                            .scaleEffect(colorSwatchScale)
+                        
+                        ColorPicker("", selection: $color)
+                            .labelsHidden()
+                            .onChange(of: color) { _, newColor in
+                                if let hex = newColor.toHex() {
+                                    colorHex = hex
+                                }
                                 bounceColorSwatch()
                             }
-                        }
-                        .textInputAutocapitalization(.characters)
-                        .disableAutocorrection(true)
-                    
-                    Circle()
-                        .fill(color)
-                        .frame(width: 28, height: 28)
-                        .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
-                        .scaleEffect(colorSwatchScale)
-                    
-                    ColorPicker("", selection: $color)
-                        .labelsHidden()
-                        .onChange(of: color) { _, newColor in
-                            if let hex = newColor.toHex() {
-                                colorHex = hex
-                            }
-                            bounceColorSwatch()
-                        }
-                }
-                
-                // Brand Name
-                HStack {
-                    Text("Brand")
-                        .frame(width: 80, alignment: .leading)
-                    TextField("Brand Name", text: $brand)
-                    Menu {
-                        ForEach(brands, id: \.self) { b in
-                            Button(b) {
-                                brand = b
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "chevron.down.circle")
-                            .foregroundColor(.accentColor)
                     }
                 }
                 
-                // Filament Name — hidden when U1 compat is active (replaced by Variant)
-                if !isU1CompatActive {
+                // Brand Name
+                if visibleFieldIDs.contains("brand") {
+                    HStack {
+                        Text("Brand")
+                            .frame(width: 80, alignment: .leading)
+                        TextField("Brand Name", text: $brand)
+                        Menu {
+                            ForEach(brands, id: \.self) { b in
+                                Button(b) {
+                                    brand = b
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "chevron.down.circle")
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                }
+
+                if visibleFieldIDs.contains("subtype") {
+                    HStack {
+                        Text("Subtype")
+                            .frame(width: 80, alignment: .leading)
+                        TextField("Subtype", text: $subtype)
+                        Menu {
+                            ForEach(SubtypeOptionService.presetOptions, id: \.self) { option in
+                                Button(option) {
+                                    subtype = option
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "chevron.down.circle")
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                }
+                
+                if WriteTagFormAssembler.shouldShowNameField(
+                    visibleFieldIDs: visibleFieldIDs
+                ) {
                     HStack {
                         Text("Name")
                             .frame(width: 80, alignment: .leading)
@@ -145,61 +177,86 @@ struct WriteTagView: View {
                 }
             }
             
-            Section("Printing Parameters") {
-                HStack {
-                    Text("Min Nozzle")
-                    Spacer()
-                    TextField("°C", value: $minNozzleTemp, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 50)
-                    Stepper("", value: $minNozzleTemp, in: 0...400)
-                        .labelsHidden()
-                }
-                
-                HStack {
-                    Text("Max Nozzle")
-                    Spacer()
-                    TextField("°C", value: $maxNozzleTemp, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 50)
-                    Stepper("", value: $maxNozzleTemp, in: 0...400)
-                        .labelsHidden()
-                }
-                
-                HStack {
-                    Text("Min Bed")
-                    Spacer()
-                    TextField("°C", value: $minBedTemp, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 50)
-                    Stepper("", value: $minBedTemp, in: 0...150)
-                        .labelsHidden()
-                }
-                
-                HStack {
-                    Text("Max Bed")
-                    Spacer()
-                    TextField("°C", value: $maxBedTemp, format: .number)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 50)
-                    Stepper("", value: $maxBedTemp, in: 0...150)
-                        .labelsHidden()
-                }
-            }
-            
-            if let id = spoolmanId {
-                Section("Linked Data") {
+            if visibleFieldIDs.contains("temp_range") {
+                Section("Printing Parameters") {
                     HStack {
-                        Text("Spoolman ID")
+                        Text("Min Nozzle")
                         Spacer()
-                        Text("\(id)")
-                            .foregroundColor(.secondary)
+                        TextField("°C", value: $minNozzleTemp, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 50)
+                        Stepper("", value: $minNozzleTemp, in: 0...400)
+                            .labelsHidden()
+                    }
+                    
+                    HStack {
+                        Text("Max Nozzle")
+                        Spacer()
+                        TextField("°C", value: $maxNozzleTemp, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 50)
+                        Stepper("", value: $maxNozzleTemp, in: 0...400)
+                            .labelsHidden()
+                    }
+                    
+                    HStack {
+                        Text("Min Bed")
+                        Spacer()
+                        TextField("°C", value: $minBedTemp, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 50)
+                        Stepper("", value: $minBedTemp, in: 0...150)
+                            .labelsHidden()
+                    }
+                    
+                    HStack {
+                        Text("Max Bed")
+                        Spacer()
+                        TextField("°C", value: $maxBedTemp, format: .number)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 50)
+                        Stepper("", value: $maxBedTemp, in: 0...150)
+                            .labelsHidden()
                     }
                 }
+            }
+
+
+            
+            if visibleFieldIDs.contains("spool_id") {
+                Section("Linked Data") {
+                HStack {
+                    Text("Spoolman ID")
+                        .frame(width: 100, alignment: .leading)
+                    TextField("Optional", text: $spoolmanIdInput)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .onChange(of: spoolmanIdInput) { _, newValue in
+                            updateSpoolmanId(from: newValue)
+                        }
+
+                    if !spoolmanIdInput.isEmpty {
+                        Button {
+                            spoolmanIdInput = ""
+                            spoolmanId = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if !writeSpoolId {
+                    Text("'Write Spool ID to Tag' is disabled in Settings. This value will be ignored when writing.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             }
 
         }
@@ -265,32 +322,19 @@ struct WriteTagView: View {
             }
         }
         .onAppear {
+            selectedFormatOverride = WriteTagFormAssembler.initialOverride(defaultRawValue: nfcTagFormat)
             if let data = initialData {
                 populateFromData(data)
             }
+        }
+        .onChange(of: selectedFormatOverride) { _, newValue in
+            _ = newValue
         }
         .alert(isPresented: Binding<Bool>(
             get: { !nfcManager.alertMessage.isEmpty },
             set: { _ in nfcManager.alertMessage = "" }
         )) {
             Alert(title: Text("NFC Error"), message: Text(nfcManager.alertMessage), dismissButton: .default(Text("OK")))
-        }
-        .sheet(isPresented: $showCompatPicker) {
-            SnapmakerCompatPickerView(
-                incompatibleMaterial: incompatibleMaterial,
-                compatibleMaterials: AppConfig.snapmakerU1Materials,
-                onSelect: { selectedMaterial in
-                    if var data = pendingTagData {
-                        data.material = selectedMaterial
-                        nfcManager.writeTag(data: data)
-                    }
-                    showCompatPicker = false
-                },
-                onCancel: {
-                    pendingTagData = nil
-                    showCompatPicker = false
-                }
-            )
         }
         .onChange(of: nfcManager.lastWriteSucceeded) { _, succeeded in
             if succeeded, var data = nfcManager.tagDataToWrite {
@@ -310,7 +354,7 @@ struct WriteTagView: View {
         if let subtype = data.subtype, !subtype.isEmpty {
             self.subtype = subtype
         } else if let name = data.name {
-            self.subtype = deriveSubtype(from: name)
+            self.subtype = SubtypeOptionService.derive(from: name)
         } else {
             self.subtype = ""
         }
@@ -322,82 +366,80 @@ struct WriteTagView: View {
         self.minBedTemp = data.minBedTemp
         self.maxBedTemp = data.maxBedTemp
         self.spoolmanId = data.spoolmanId
+        self.spoolmanIdInput = data.spoolmanId.map(String.init) ?? ""
+        self.tagURLInput = data.tagURL ?? ""
     }
-    
-    private func deriveSubtype(from name: String) -> String {
-        let lowercaseName = name.lowercased()
-        
-        let subtypeMappings: [(keywords: [String], subtype: String)] = [
-            (["matte"], "Matte"),
-            (["silk"], "Silk"),
-            (["glossy", "gloss"], "Glossy"),
-            (["translucent", "translucentpetg"], "Translucent"),
-            (["transparent", "clear"], "Transparent"),
-            (["glitter"], "Glitter"),
-            (["glow"], "Glow"),
-            (["carbon", "cf", "cf15", "cf10"], "Carbon Fiber"),
-            (["wood"], "Wood"),
-            (["support", "pva"], "Support"),
-            (["basic"], "Basic"),
-            (["hf", "high speed", "hs", "hyperspeed"], "HF"),
-            (["rapid"], "Rapid"),
-            (["tpu", "flex", "flexible", "soft"], "Flexible"),
-            (["semi flexible", "semi-flexible", "fpe"], "Semi Flexible")
-        ]
-        
-        for mapping in subtypeMappings {
-            for keyword in mapping.keywords {
-                if lowercaseName.contains(keyword) {
-                    return mapping.subtype
-                }
-            }
+
+    private func updateSpoolmanId(from rawValue: String) {
+        let digitsOnly = rawValue.filter { $0.isNumber }
+        if digitsOnly != rawValue {
+            spoolmanIdInput = digitsOnly
         }
-        
-        return "Basic"
+        spoolmanId = Int(digitsOnly)
     }
     
     private func buildTagData() -> FilamentTagData {
-        let currentFormat = TagFormat(rawValue: nfcTagFormat) ?? .openSpool
-        
-        // Determine subtype and name based on format + settings
-        let subtypeToWrite: String?
-        let nameToWrite: String?
-        
-        switch currentFormat {
-        case .openSpool:
-            // U1 compat ON: write variant, omit name. U1 compat OFF: write name, omit variant.
-            subtypeToWrite = (isU1CompatActive && !subtype.isEmpty && subtype != "None") ? subtype : nil
-            nameToWrite = (!isU1CompatActive && !name.isEmpty) ? name : nil
-        case .openTag3D:
-            // OpenTag3D supports both material_mod (subtype) and color_name (name)
-            subtypeToWrite = (!subtype.isEmpty && subtype != "None") ? subtype : nil
-            nameToWrite = !name.isEmpty ? name : nil
-        case .openPrintTag:
-            // OpenPrintTag uses material_name (name), no subtype
-            subtypeToWrite = nil
-            nameToWrite = !name.isEmpty ? name : nil
-        case .anycubicACE:
-            // ACE uses SKU (name), no subtype
-            subtypeToWrite = nil
-            nameToWrite = !name.isEmpty ? name : nil
+        let resolvedName: String = if visibleFieldIDs.contains("name") {
+            name
+        } else {
+            ""
         }
-        
-        return FilamentTagData(
-            name: nameToWrite,
+
+        let resolvedSubtype: String = if visibleFieldIDs.contains("subtype") {
+            SubtypeOptionService.resolve(userInput: subtype)
+        } else {
+            ""
+        }
+
+        let resolvedSpoolmanID: Int? = if visibleFieldIDs.contains("spool_id") {
+            spoolmanId
+        } else {
+            nil
+        }
+
+        let data = WriteTagFormAssembler.buildTagData(
+            format: selectedFormatOverride,
+            name: resolvedName,
             material: material,
-            subtype: subtypeToWrite,
+            subtype: resolvedSubtype,
             brand: brand,
             colorHex: colorHex,
             minNozzleTemp: minNozzleTemp,
             maxNozzleTemp: maxNozzleTemp,
             minBedTemp: minBedTemp,
             maxBedTemp: maxBedTemp,
-            spoolmanId: writeSpoolId ? spoolmanId : nil
+            spoolmanId: resolvedSpoolmanID,
+            writeSpoolID: writeSpoolId
         )
+
+        return data
     }
-    
+
+    private func parseOptionalString(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func parseOptionalInt(_ value: String) -> Int? {
+        guard let trimmed = parseOptionalString(value) else { return nil }
+        return Int(trimmed)
+    }
+
+    private func parseOptionalDouble(_ value: String) -> Double? {
+        guard let trimmed = parseOptionalString(value) else { return nil }
+        return Double(trimmed)
+    }
+
+    private func parseOptionalURLString(_ value: String) -> String? {
+        guard let trimmed = parseOptionalString(value) else { return nil }
+        guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) else {
+            return nil
+        }
+        return trimmed
+    }
+
     private func writeTag() {
-        var data = buildTagData()
+        let data = buildTagData()
         
         // Validate data before attempting write
         if let error = data.validate() {
@@ -405,19 +447,7 @@ struct WriteTagView: View {
             return
         }
         
-        // Snapmaker U1 compat only applies to OpenSpool format
-        if isU1CompatActive {
-            if let resolved = AppConfig.resolveSnapmakerU1Material(data.material) {
-                data.material = resolved
-            } else {
-                incompatibleMaterial = data.material
-                pendingTagData = data
-                showCompatPicker = true
-                return
-            }
-        }
-        
-        nfcManager.writeTag(data: data)
+        nfcManager.writeTag(data: data, format: selectedFormatOverride)
     }
     
     private func triggerWriteSuccess() {

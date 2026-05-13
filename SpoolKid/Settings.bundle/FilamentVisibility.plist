@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+	<dict>
+		<key>Type</key>
+		<string>PSGroupSpecifier</string>
+		<key>Title</key>
+		<string>Filament Optional Fields</string>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Price</string>
+		<key>Key</key>
+		<string>visibility_filament_price</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Net Weight</string>
+		<key>Key</key>
+		<string>visibility_filament_weight</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Default Spool Weight</string>
+		<key>Key</key>
+		<string>visibility_filament_spool_weight</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Article Number</string>
+		<key>Key</key>
+		<string>visibility_filament_article_number</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Comment</string>
+		<key>Key</key>
+		<string>visibility_filament_comment</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Multi-Color Hexes</string>
+		<key>Key</key>
+		<string>visibility_filament_multi_color_hexes</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Multi-Color Direction</string>
+		<key>Key</key>
+		<string>visibility_filament_multi_color_direction</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>External ID</string>
+		<key>Key</key>
+		<string>visibility_filament_external_id</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	<dict>
+		<key>Type</key>
+		<string>PSToggleSwitchSpecifier</string>
+		<key>Title</key>
+		<string>Extra JSON (Advanced)</string>
+		<key>Key</key>
+		<string>visibility_filament_extra</string>
+		<key>DefaultValue</key>
+		<false/>
+	</dict>
+	</array>
+</dict>
+</plist>
