@@ -32,14 +32,16 @@ Requires Xcode 16+, iOS 18.0+ and Apple Developer subscription.
 
 ### NFC Tag Formats
 
-SpoolKid reads and writes NFC tags (NTAG213/215/216) in four formats. Reading auto-detects the format; writing uses whichever format you select in Settings.
+SpoolKid reads and writes NFC tags (NTAG213/215/216) in four formats. Reading auto-detects the format; writing uses whichever format you select.
 
 | Format | Notes |
 |---|---|
 | **OpenSpool** | JSON-based NDEF. Default format. |
 | **OpenTag3D** | NDEF with `application/opentag3d` MIME type. |
 | **ELEGOO** | Raw page format for ELEGOO RFID tags. |
-| **Anycubic ACE** | Raw page writes (non-NDEF) for ACE Pro spool holder compatibility. |
+| **Anycubic ACE** | Raw page format (non-NDEF) for ACE Pro spool holder compatibility. |
+
+**Note:** I primarily use OpenSpool. If you can test other formats, please help validate SpoolKid’s implementation and share your findings.
 
 ### Encrypted or Unknown Tags
 
