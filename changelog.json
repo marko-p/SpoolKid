@@ -1,0 +1,29 @@
+[
+  {
+    "version": "0.18",
+    "date": "2026-09-08",
+    "headline": "Weigh your spools",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Weigh a spool on a kitchen scale and SpoolKid works out what filament is left."
+      },
+      {
+        "kind": "added",
+        "text": "Previous measurements are listed on the spool, including ones recorded by FilaMan."
+      },
+      {
+        "kind": "improved",
+        "text": "Search now matches your words across every field instead of the whole phrase against one."
+      },
+      {
+        "kind": "improved",
+        "text": "Every scan routes to the Scan Result Hub, whichever backend and settings you use."
+      },
+      {
+        "kind": "fixed",
+        "text": "The spool form explains why a weight mode is unavailable instead of showing nothing."
+      }
+    ]
+  }
+]
