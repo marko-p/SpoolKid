@@ -1,5 +1,48 @@
 [
   {
+    "version": "0.19",
+    "date": "2026-09-16",
+    "headline": "Put spools in their place",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Introduces drag-and-drop in location management. Drag spools between locations, and drag locations into your own order; SpoolKid remembers locations order."
+      },
+      {
+        "kind": "added",
+        "text": "Select several spools and assign them all to one location at once, or sort locations by name, spool count, or your own arrangement."
+      },
+      {
+        "kind": "added",
+        "text": "Clone Tag copies a scanned tag onto another tag byte for byte, offered right in the Scan Result Hub."
+      },
+      {
+        "kind": "added",
+        "text": "Anycubic ACE writes now put the spool's ID in the SKU by default, and the write form takes diameter and net weight."
+      },
+      {
+        "kind": "improved",
+        "text": "Your Bluetooth scale is set up once, and SpoolKid learns its zero point by watching it rest empty."
+      },
+      {
+        "kind": "improved",
+        "text": "A scanned spool's filament opens for editing with a tap, a missing manufacturer or filament can be created on the spot, and captions say where each detail came from."
+      },
+      {
+        "kind": "improved",
+        "text": "Deleting a vendor, filament, or location that spools still use explains what would go with it and lets you decide, instead of failing quietly."
+      },
+      {
+        "kind": "fixed",
+        "text": "A refused delete, archive, or write now says so instead of closing as if it worked, and FilaMan's own error messages are read properly."
+      },
+      {
+        "kind": "fixed",
+        "text": "ELEGOO and OpenTag3D tags are read straight off the tag instead of by guesswork, and password-protected ACE tags are refused with an explanation."
+      }
+    ]
+  },
+  {
     "version": "0.18",
     "date": "2026-09-08",
     "headline": "Weigh your spools",
