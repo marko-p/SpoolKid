@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.20",
+    "date": "2026-09-17",
+    "headline": "TigerTag arrives",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Reads and writes TigerTag spool tags — the open standard eSun, Sunlu and Rosa3D ship — with material, brand, temperatures, weight and drying info resolved from the official registry."
+      },
+      {
+        "kind": "added",
+        "text": "Factory-signed TigerTag+ chips are verified offline, and the scan hub says whether a tag is genuine."
+      },
+      {
+        "kind": "added",
+        "text": "The write form's material and brand show exactly which registry entry will be written, with a searchable picker."
+      }
+    ]
+  },
+  {
     "version": "0.19",
     "date": "2026-09-16",
     "headline": "Put spools in their place",
