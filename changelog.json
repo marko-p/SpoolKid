@@ -1,5 +1,48 @@
 [
   {
+    "version": "0.21",
+    "date": "2026-09-26",
+    "headline": "Steadier scale, safer tags",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Empty This Tag and Unlink sit beside Clone Tag in the Scan Result Hub, each saying what it changes and what it leaves alone — and erasing works on ACE, ELEGOO and TigerTag tags too."
+      },
+      {
+        "kind": "added",
+        "text": "OpenTag3D tags now carry manufacture date, drying temperature and time, and empty-spool weight."
+      },
+      {
+        "kind": "added",
+        "text": "When assigning locations, a spool tag that matched nothing can be linked to the spool you picked, so the next scan finds it."
+      },
+      {
+        "kind": "added",
+        "text": "A label scan that never quite settles offers \"Use This Reading\" instead of leaving Cancel as the only way out."
+      },
+      {
+        "kind": "improved",
+        "text": "Scale readings are more trustworthy: a reading cut off by a dropped connection is no longer taken as final or as zero, and SpoolKid keeps reconnecting a scale it had given up on."
+      },
+      {
+        "kind": "improved",
+        "text": "The filament form suggests a density from the material, and scanned filaments always get one, so Spoolman accepts them."
+      },
+      {
+        "kind": "improved",
+        "text": "Sort menus show which option is selected, and switching backend keeps you on the tab you were on."
+      },
+      {
+        "kind": "fixed",
+        "text": "Migrating to Spoolman flags missing density or diameter before uploading, and anything the server could not store is listed and keeps your Library from being wiped."
+      },
+      {
+        "kind": "fixed",
+        "text": "TigerTag drying times are read as hours, not minutes; ELEGOO filament names and Anycubic scan labels read correctly; FilaMan's spool statuses appear when the spool form opens from a scan."
+      }
+    ]
+  },
+  {
     "version": "0.20",
     "date": "2026-09-17",
     "headline": "TigerTag arrives",
