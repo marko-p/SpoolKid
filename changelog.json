@@ -1,5 +1,48 @@
 [
   {
+    "version": "0.22",
+    "date": "2026-09-28",
+    "headline": "Simpler screens, clearer answers",
+    "changes": [
+      {
+        "kind": "improved",
+        "text": "The Scan Result Hub is laid out as Spool and Filament sections of tiles, with tag maintenance in a ⋯ menu and each button explained behind an (i)."
+      },
+      {
+        "kind": "improved",
+        "text": "Create New Spool and Transfer Tag ask which tags move, and a tag scanned in the spool form ticks its own toggle."
+      },
+      {
+        "kind": "improved",
+        "text": "The Tags tab is tidier: Scan Tag and Scan Label float over the list side by side, Write Tag replaces Add, and first-run tips appear one at a time and retire once you use the feature."
+      },
+      {
+        "kind": "improved",
+        "text": "Settings opens from a cog with About as its last section, the Library tab is called Library on every backend, and vendors are now Manufacturers throughout."
+      },
+      {
+        "kind": "improved",
+        "text": "Explanations in the spool form, Weigh Spools and every Home card now sit behind (i) buttons, including how each Home number is worked out."
+      },
+      {
+        "kind": "improved",
+        "text": "A spool's location is picked from one menu, with None clearing it; Manage Locations has a single Assign Spools button and a shorter toolbar."
+      },
+      {
+        "kind": "fixed",
+        "text": "A tag linked through FilaMan's RFID field is no longer copied into SpoolKid's tag mappings, and Unlink, Transfer and tag moves are only offered when the tag can actually be released."
+      },
+      {
+        "kind": "fixed",
+        "text": "The Scan Result Hub never offers Link and Unlink for the same tag, and stays current after it links or creates a spool."
+      },
+      {
+        "kind": "fixed",
+        "text": "The migration sheet opens by itself only once per backend, and Linked Tags is disabled where the backend cannot store tag mappings."
+      }
+    ]
+  },
+  {
     "version": "0.21",
     "date": "2026-09-26",
     "headline": "Steadier scale, safer tags",
