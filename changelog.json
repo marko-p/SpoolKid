@@ -1,5 +1,24 @@
 [
   {
+    "version": "0.23",
+    "date": "2026-10-01",
+    "headline": "Blank tags and local servers",
+    "changes": [
+      {
+        "kind": "fixed",
+        "text": "A blank tag, including one just cleared with Empty This Tag, now reads as \"Empty tag\" instead of \"Unknown tag format\"."
+      },
+      {
+        "kind": "fixed",
+        "text": "Spoolman and FilaMan servers addressed by a dotted hostname such as spoolman.lan now connect over plain HTTP, and trusted self-signed HTTPS reaches them too."
+      },
+      {
+        "kind": "fixed",
+        "text": "The Tag Explorer no longer calls a tag whose NDEF area holds no real records \"NDEF, but no format SpoolKid knows\"."
+      }
+    ]
+  },
+  {
     "version": "0.22",
     "date": "2026-09-28",
     "headline": "Simpler screens, clearer answers",
