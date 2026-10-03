@@ -107,7 +107,7 @@ struct FilamentSelectionView: View {
                         Text(error)
                     } actions: {
                         Button("Retry") {
-                            Task { await spoolmanDBService.fetchFilaments() }
+                            Task { await spoolmanDBService.fetchFilaments(from: spoolManService, baseUrl: baseUrl) }
                         }
                         .buttonStyle(.borderedProminent)
                     }
@@ -150,7 +150,7 @@ struct FilamentSelectionView: View {
         .navigationTitle("Select Filament")
         .task {
             await spoolManService.fetchFilaments(baseUrl: baseUrl)
-            await spoolmanDBService.fetchFilaments()
+            await spoolmanDBService.fetchFilaments(from: spoolManService, baseUrl: baseUrl)
             if spoolManService.vendors.isEmpty {
                 await spoolManService.fetchVendors(baseUrl: baseUrl)
             }

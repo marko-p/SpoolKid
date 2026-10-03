@@ -90,6 +90,13 @@ class SpoolmanService: ObservableObject {
         }
     }
     
+    /// The catalogue Spoolman synced from its `EXTERNAL_DB_URL` (route since
+    /// v0.18.0). Throws instead of touching `errorMessage`: a missing
+    /// catalogue is not a server error, and the caller falls back.
+    func fetchExternalFilaments(baseUrl: String) async throws -> [SpoolmanDBFilament] {
+        try await sendRequest(method: "GET", endpoint: "/api/v1/external/filament", baseUrl: baseUrl)
+    }
+
     func testConnection(baseUrl: String) async -> Bool {
         do {
             let _: [SpoolmanVendor] = try await sendRequest(method: "GET", endpoint: "/api/v1/vendor", baseUrl: baseUrl)

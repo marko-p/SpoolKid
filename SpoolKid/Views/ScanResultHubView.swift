@@ -627,9 +627,7 @@ struct ScanResultHubView: View {
     }
 
     private func prepareSuggestedNewSpoolSource(for tagData: FilamentTagData) async {
-        if spoolmanDBService.filaments.isEmpty {
-            await spoolmanDBService.fetchFilaments()
-        }
+        await spoolmanDBService.fetchFilaments(from: spoolmanService, baseUrl: spoolmanUrl)
         var scored: [(source: NewSpoolSource, score: Int)] = []
 
         scored.append(contentsOf: spoolmanService.filaments.compactMap { filament in
