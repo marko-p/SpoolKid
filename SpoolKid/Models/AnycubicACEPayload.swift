@@ -9,7 +9,7 @@
 //  Each "page" is 4 bytes on NTAG213/215 (MIFARE Ultralight compatible).
 //
 //  Memory map:
-//    Page  4       (4B)  = Header / magic byte 0x7B at byte 0
+//    Page  4       (4B)  = Header: 7B 00 65 00 (magic byte 0x7B at byte 0)
 //    Pages 5-8     (16B) = SKU (null-padded ASCII)
 //    Pages 10-13   (16B) = Brand (null-padded ASCII)
 //    Pages 15-18   (16B) = Material type (null-padded ASCII)
@@ -57,8 +57,9 @@ struct AnycubicACEPayload {
     static func encodePages(from data: FilamentTagData) -> [(page: Int, data: Data)] {
         var pages: [(page: Int, data: Data)] = []
         
-        // Page 4: Header with magic byte
-        pages.append((pageHeader, Data([magicByte, 0x00, 0x00, 0x00])))
+        // Page 4: Header — the magic byte, and 0x65 in byte 2 as a factory tag
+        // carries it. An ACE Pro ignores a tag whose byte 2 is zero (issue #16).
+        pages.append((pageHeader, Data([magicByte, 0x00, 0x65, 0x00])))
         
         // Pages 5-8: SKU (use filament name or "material brand" as SKU)
         let sku = data.name ?? "\(data.material)"
