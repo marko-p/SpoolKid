@@ -1,5 +1,60 @@
 [
   {
+    "version": "0.24",
+    "date": "2026-10-08",
+    "headline": "ELEGOO writing and Spoolman Tags",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "SpoolKid can now write ELEGOO tags, picking the filament from ELEGOO's own catalog."
+      },
+      {
+        "kind": "added",
+        "text": "On Spoolman 0.27 and later, tag links are stored in Spoolman's own Tags as well as card_uids, and a Spoolman Tag link wins every read."
+      },
+      {
+        "kind": "added",
+        "text": "Settings can copy your tag links from card_uids into Spoolman Tags, and delete card_uids once Spoolman Tags hold every link (or the other way round)."
+      },
+      {
+        "kind": "added",
+        "text": "Third-party notices are listed in Settings → SpoolKid → Acknowledgements."
+      },
+      {
+        "kind": "improved",
+        "text": "Recent Tags remember each tag's format and open Write Tag in it."
+      },
+      {
+        "kind": "improved",
+        "text": "Form fields select their value when you tap into them."
+      },
+      {
+        "kind": "improved",
+        "text": "The on-device Library holds up to 5,000 spools, and the Library tab refreshes its spools each time you return to it."
+      },
+      {
+        "kind": "improved",
+        "text": "Tag formats are shown by name rather than logo, and the first-scan support prompt is gone."
+      },
+      {
+        "kind": "improved",
+        "text": "The filament import catalog loads from whichever backend serves one."
+      },
+      {
+        "kind": "fixed",
+        "text": "A small difference in the Anycubic tag header kept the Anycubic ACE Pro from reading tags written by SpoolKid; SpoolKid now writes it exactly as a factory tag does."
+      },
+      {
+        "kind": "fixed",
+        "text": "Blank ISO 15693 tags are formatted before writing and read as \"Empty tag\"."
+      },
+      {
+        "kind": "fixed",
+        "text": "A pre-filled spool ID that no longer names a spool is cleared, and an ACE Recent Tag's SM<id> SKU is read as its spool ID."
+      }
+    ]
+  },
+  {
     "version": "0.23",
     "date": "2026-10-01",
     "headline": "Blank tags and local servers",
