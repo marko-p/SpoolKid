@@ -1,5 +1,32 @@
 [
   {
+    "version": "0.26",
+    "date": "2026-10-18",
+    "headline": "Inspect Tag and brand defaults",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Inspect Tag, in the ⋯ menu after a scan, shows the tag's chip, memory use, format and every record as text and hex. Copy a record's hex, or share the whole report."
+      },
+      {
+        "kind": "added",
+        "text": "An empty spool can be the default for its manufacturer's spools: a new spool takes the empty weight of its filament's brand, and the empty-spool picker lists that brand first."
+      },
+      {
+        "kind": "improved",
+        "text": "The spool form's Filament row shows the chosen filament's swatch, material, diameter and weight."
+      },
+      {
+        "kind": "fixed",
+        "text": "Scanning a tag whose link record is corrupt no longer closes the app."
+      },
+      {
+        "kind": "fixed",
+        "text": "On iOS 27, deleting a filament or manufacturer that other records use works again; the final warning no longer closes the moment it opens."
+      }
+    ]
+  },
+  {
     "version": "0.25",
     "date": "2026-10-12",
     "headline": "Tag identity, filament tags and empty spools",
