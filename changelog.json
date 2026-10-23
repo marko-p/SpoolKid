@@ -1,5 +1,60 @@
 [
   {
+    "version": "0.27",
+    "date": "2026-10-23",
+    "headline": "Catalogue weights, OpenPrintTag countdown and server addresses",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "OpenPrintTag tags are written in Prusa's layout with the spool's weights, diameter and consumption, so the printer can count down what is left. Scanning one shows the remaining filament."
+      },
+      {
+        "kind": "added",
+        "text": "On FilaMan, Select Filament and Scan Result search FilaManDB."
+      },
+      {
+        "kind": "added",
+        "text": "A catalogue filament brings its empty spool weight along: a new spool starts from it, and the Empty Spools picker lists the catalogue's empty-spool weights."
+      },
+      {
+        "kind": "added",
+        "text": "Plain-grams Bluetooth scales of the CA-frame kind are now read."
+      },
+      {
+        "kind": "improved",
+        "text": "Connection forms show the address SpoolKid will use, or what to fix; typed server addresses are handled more forgivingly."
+      },
+      {
+        "kind": "improved",
+        "text": "A scanned tag's net weight, consumption and empty spool weight fill the new spool and its filament."
+      },
+      {
+        "kind": "improved",
+        "text": "Inspect Tag and the Tag Explorer name ICODE SLIX and SLIX2 chips."
+      },
+      {
+        "kind": "fixed",
+        "text": "A web page returned by the server is reported as an error instead of being treated as data or a working connection."
+      },
+      {
+        "kind": "fixed",
+        "text": "OpenSpool tags without temperatures, or with numeric ones, are read as OpenSpool."
+      },
+      {
+        "kind": "fixed",
+        "text": "OpenPrintTag no longer writes 0 for a field left blank."
+      },
+      {
+        "kind": "fixed",
+        "text": "Save & Write writes ELEGOO tags as the suggested filament, and Add Spool shows the written tags and keeps Linked Tags changes."
+      },
+      {
+        "kind": "fixed",
+        "text": "Formatting a blank SLIX2 tag no longer writes its counter block."
+      }
+    ]
+  },
+  {
     "version": "0.26",
     "date": "2026-10-18",
     "headline": "Inspect Tag and brand defaults",
