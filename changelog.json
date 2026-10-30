@@ -1,5 +1,60 @@
 [
   {
+    "version": "0.28",
+    "date": "2026-10-30",
+    "headline": "A new Library, multi-color filaments and weight after a print",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "The Library opens on your spools, grouped by filament, manufacturer, material or location, with grams left and linked tags on every row."
+      },
+      {
+        "kind": "added",
+        "text": "Filament and manufacturer pages show their details, spools and stock; tap a group header or a scanned filament to open one."
+      },
+      {
+        "kind": "added",
+        "text": "Multi-color filaments: set several colors in the filament form and Write Tag; they are read and written on OpenSpool, OpenPrintTag, OpenTag3D and TigerTag tags and on every backend, and swatches show every color."
+      },
+      {
+        "kind": "added",
+        "text": "Adjust Weight after a print, from the Scan Result Hub or Edit Spool: enter what the print used, or weigh what is left."
+      },
+      {
+        "kind": "added",
+        "text": "Add Spool takes a count and creates several identical spools at once, each with its own tag section."
+      },
+      {
+        "kind": "added",
+        "text": "Add Spool can start from the filament search, and its initial weight comes from the tag or filament, with quick size chips."
+      },
+      {
+        "kind": "added",
+        "text": "The AccuWeight CK780BLE scale is now read."
+      },
+      {
+        "kind": "improved",
+        "text": "Tags and Library actions moved to a bottom bar, within thumb reach. Tips explain each icon."
+      },
+      {
+        "kind": "improved",
+        "text": "The Library shows how many spools are tagged when Tag Links is on."
+      },
+      {
+        "kind": "improved",
+        "text": "Select Spool lists the most recently used spools first."
+      },
+      {
+        "kind": "fixed",
+        "text": "Library search keeps the keyboard while you type."
+      },
+      {
+        "kind": "fixed",
+        "text": "Truncated tags match their filament, and rewriting a spool ID keeps every other field on the tag."
+      }
+    ]
+  },
+  {
     "version": "0.27",
     "date": "2026-10-23",
     "headline": "Catalogue weights, OpenPrintTag countdown and server addresses",
