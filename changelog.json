@@ -1,5 +1,71 @@
 [
   {
+    "version": "0.30.1",
+    "date": "2026-11-08",
+    "headline": "Full Anycubic ACE SKUs",
+    "changes": [
+      {
+        "kind": "fixed",
+        "text": "Anycubic ACE tags read and write SKUs up to 20 characters, so a 17-character ReSpool SKU no longer loses its last character."
+      },
+      {
+        "kind": "improved",
+        "text": "Temperatures taken from a tag's range are rounded to the nearest 5 °C: a 185–200 °C range proposes 195 °C."
+      }
+    ]
+  },
+  {
+    "version": "0.30",
+    "date": "2026-11-04",
+    "headline": "Spool pages, camera color capture and OpenID sign-in",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Read TD and color from a Biqu TD1S connected by USB (firmware 2.0.1 or later), straight into the filament form."
+      },
+      {
+        "kind": "added",
+        "text": "Capture a filament's color with the camera, from any color row. A grey card in the picture corrects the white balance, a white/grey/black card the brightness too, and a short guide explains the best light."
+      },
+      {
+        "kind": "added",
+        "text": "Filaments can store a HueForge TD value, saved where Spoolman→HueForge tools look for it."
+      },
+      {
+        "kind": "added",
+        "text": "Scan Label reads Spoolman and FilaMan QR codes: point the camera at a printed label to open its spool or filament."
+      },
+      {
+        "kind": "added",
+        "text": "Tapping a spool opens its page: Link Tag, Write Tag, Location and Weigh are big tiles at the top, the details sit below, and Edit is there when you need it."
+      },
+      {
+        "kind": "added",
+        "text": "Sign in to Spoolman with OpenID Connect when it sits behind an authenticating proxy (Authentik, Keycloak, oauth2-proxy…)."
+      },
+      {
+        "kind": "added",
+        "text": "FilaMan Tags: turn it on under Tag Links in Tag Identity, and tags you link reach FilaMan's own tag field, so its scale sees them and you can unlink the ones it bound."
+      },
+      {
+        "kind": "improved",
+        "text": "The Tags and Library bottom-bar buttons are larger, centred and named."
+      },
+      {
+        "kind": "improved",
+        "text": "Spool, filament and manufacturer pages open one level deep, so you are never many screens from where you started."
+      },
+      {
+        "kind": "improved",
+        "text": "Weights in the weight card are shown to 0.1 g."
+      },
+      {
+        "kind": "fixed",
+        "text": "Add Spool and Scan Tag respond to a tap again."
+      }
+    ]
+  },
+  {
     "version": "0.28",
     "date": "2026-10-30",
     "headline": "A new Library, multi-color filaments and weight after a print",
