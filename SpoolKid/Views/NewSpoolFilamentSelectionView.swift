@@ -8,32 +8,39 @@
 
 //
 // Copyright (c) 2026 Marko Praprotnik. All rights reserved.
-// Licensed under the MIT License.
+// Licensed under the GNU AGPL v3.0 only; commercial licenses: see COMMERCIAL.md.
 // See LICENSE in the project root for details.
 //
 
 import SwiftUI
 
 struct NewSpoolFilamentSelectionView: View {
-    let candidates: [ScanResultHubView.NewSpoolSource]
-    let onSelect: (ScanResultHubView.NewSpoolSource) -> Void
+    /// Loads the candidates when the list opens (and again on Retry): on
+    /// FilaMan that is a few requests, which the hub does not pay for scans
+    /// that never open this list.
+    let load: () async -> ScanResolutionService.CandidateLoad
+    let onSelect: (ScanResolutionService.NewSpoolSource) -> Void
+    /// The catalogue the candidates come from, as the rows name it.
+    var catalogName = "SpoolmanDB"
 
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
+    @State private var candidates: [ScanResolutionService.NewSpoolSource] = []
+    /// How the catalogue answered the last load; nil while one is running.
+    @State private var catalogue: ScanResolutionService.CatalogueAnswer?
+    /// Bumped by Retry; the load task is keyed on it.
+    @State private var attempt = 0
 
-    private var filteredCandidates: [ScanResultHubView.NewSpoolSource] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return candidates }
-        let lower = query.lowercased()
-
-        return candidates.filter { candidate in
-            searchableText(for: candidate).contains(lower)
+    private var filteredCandidates: [ScanResolutionService.NewSpoolSource] {
+        candidates.filter { candidate in
+            SearchQuery.matches(searchText, in: [searchableText(for: candidate)])
         }
     }
 
     var body: some View {
-        List {
+        HarmonizedSearchList(title: "Choose Filament", searchText: $searchText, prompt: "Search filaments") {
             Section("Filament Candidates") {
+                catalogueStatusRow
                 ForEach(filteredCandidates) { candidate in
                     Button {
                         onSelect(candidate)
@@ -44,14 +51,44 @@ struct NewSpoolFilamentSelectionView: View {
                 }
             }
         }
-        .listStyle(.insetGrouped)
-        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search filaments")
-        .navigationTitle("Choose Filament")
-        .navigationBarTitleDisplayMode(.inline)
+        .task(id: attempt) {
+            catalogue = nil
+            let loaded = await load()
+            // A closed or restarted load is not an answer.
+            guard !Task.isCancelled else { return }
+            candidates = loaded.candidates
+            catalogue = loaded.catalogue
+        }
+    }
+
+    /// Says what the catalogue is doing, so a missing answer is never read as
+    /// "nothing found": loading, could not reach (with Retry), or no filaments
+    /// for this brand. The local candidates below stand in every case.
+    @ViewBuilder
+    private var catalogueStatusRow: some View {
+        switch catalogue {
+        case nil:
+            ProgressView()
+                .frame(maxWidth: .infinity)
+        case .failed:
+            HStack(spacing: 12) {
+                Label("Could not reach \(catalogName)", systemImage: "exclamationmark.triangle")
+                    .font(.subheadline)
+                Spacer()
+                Button("Retry") { attempt += 1 }
+                    .buttonStyle(.bordered)
+            }
+        case .noBrand:
+            Text("\(catalogName) has no filaments for this brand.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        case .answered:
+            EmptyView()
+        }
     }
 
     @ViewBuilder
-    private func candidateRow(_ candidate: ScanResultHubView.NewSpoolSource) -> some View {
+    private func candidateRow(_ candidate: ScanResolutionService.NewSpoolSource) -> some View {
         HStack(spacing: 12) {
             colorSwatch(for: candidate)
 
@@ -60,12 +97,10 @@ struct NewSpoolFilamentSelectionView: View {
                     .font(.headline)
                     .lineLimit(1)
 
-                ForEach(detailLines(for: candidate), id: \.self) { detail in
-                    Text(detail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+                Text(detailLine(for: candidate))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
 
                 Text(sourceLabel(for: candidate))
                     .font(.caption2)
@@ -78,82 +113,45 @@ struct NewSpoolFilamentSelectionView: View {
     }
 
     @ViewBuilder
-    private func colorSwatch(for candidate: ScanResultHubView.NewSpoolSource) -> some View {
-        let hex: String? = switch candidate {
+    private func colorSwatch(for candidate: ScanResolutionService.NewSpoolSource) -> some View {
+        let colors: FilamentColors = switch candidate {
         case .local(let filament):
-            filament.colorHex
+            filament.colors
         case .spoolmanDB(let filament):
-            filament.colorHex
+            filament.colors
         }
 
-        Circle()
-            .fill(hex.flatMap { Color(hex: $0) } ?? .gray)
-            .frame(width: 26, height: 26)
-            .overlay(Circle().stroke(Color.swatchBorder, lineWidth: 1))
+        FilamentSwatch(colors: colors, size: 26)
     }
 
-    private func title(for candidate: ScanResultHubView.NewSpoolSource) -> String {
+    private func title(for candidate: ScanResolutionService.NewSpoolSource) -> String {
         switch candidate {
         case .local(let filament):
-            return filament.name ?? "Unnamed Filament"
+            return filament.listTitle
         case .spoolmanDB(let filament):
-            return filament.name
+            return filament.listTitle
         }
     }
 
-    private func detailLines(for candidate: ScanResultHubView.NewSpoolSource) -> [String] {
+    private func detailLine(for candidate: ScanResolutionService.NewSpoolSource) -> String {
         switch candidate {
         case .local(let filament):
-            var lines: [String] = []
-            lines.append("\(filament.vendor?.name ?? "Unknown Vendor") \(filament.material ?? "")")
-
-            var specs: [String] = []
-            if let diameter = filament.diameter {
-                specs.append(String(format: "%.2f mm", diameter))
-            }
-            if let density = filament.density {
-                specs.append(String(format: "%.2f g/cm³", density))
-            }
-            if !specs.isEmpty {
-                lines.append(specs.joined(separator: " • "))
-            }
-
-            return lines
-
+            return filament.listSpecParts.joined(separator: " • ")
         case .spoolmanDB(let filament):
-            var lines: [String] = []
-            lines.append("\(filament.manufacturer) \(filament.material)")
-
-            var specs: [String] = []
-            specs.append(String(format: "%.2f mm", filament.diameter))
-            specs.append(String(format: "%.2f g/cm³", filament.density))
-            if let weight = filament.weight {
-                specs.append(String(format: "%.0f g filament", weight))
-            }
-            if let spoolWeight = filament.spoolWeight {
-                specs.append(String(format: "%.0f g spool", spoolWeight))
-            }
-            if let spoolType = filament.spoolType, !spoolType.isEmpty {
-                specs.append(spoolType)
-            }
-            if !specs.isEmpty {
-                lines.append(specs.joined(separator: " • "))
-            }
-
-            return lines
+            return filament.listDetailParts.joined(separator: " • ")
         }
     }
 
-    private func sourceLabel(for candidate: ScanResultHubView.NewSpoolSource) -> String {
+    private func sourceLabel(for candidate: ScanResolutionService.NewSpoolSource) -> String {
         switch candidate {
         case .local:
             return "From My Filaments"
         case .spoolmanDB:
-            return "From SpoolmanDB (will import first)"
+            return "From \(catalogName) (will import first)"
         }
     }
 
-    private func searchableText(for candidate: ScanResultHubView.NewSpoolSource) -> String {
+    private func searchableText(for candidate: ScanResolutionService.NewSpoolSource) -> String {
         switch candidate {
         case .local(let filament):
             return [
@@ -173,10 +171,10 @@ struct NewSpoolFilamentSelectionView: View {
                 filament.material,
                 filament.spoolType ?? "",
                 String(format: "%.2f", filament.diameter),
-                String(format: "%.2f", filament.density),
+                filament.density.map { String(format: "%.2f", $0) } ?? "",
                 filament.weight.map { String(format: "%.0f", $0) } ?? "",
                 filament.spoolWeight.map { String(format: "%.0f", $0) } ?? "",
-                "spoolmandb"
+                catalogName.lowercased()
             ]
             .joined(separator: " ")
             .lowercased()

@@ -1,5 +1,79 @@
 [
   {
+    "version": "0.34",
+    "date": "2026-11-21",
+    "headline": "Color Matching and a fresher label reader",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Group the Library by Color: spools gather by hue family in spectrum order, with No color last."
+      },
+      {
+        "kind": "added",
+        "text": "Color Matching: under the Color grouping, Match a Photo finds the spools closest to the colors you pick from a photo, picked from your photos or taken on the spot. Filter by Color sits beside it and offers color harmonies."
+      },
+      {
+        "kind": "added",
+        "text": "Occasional messages from the developer, such as a request for your vote, open once at launch, and an unanswered one waits as a card on Home."
+      },
+      {
+        "kind": "improved",
+        "text": "Label scanning learns new brands and materials: SpoolKid refreshes its vocabulary from SpoolmanDB once a week over Wi-Fi, and the material menus list the new materials too."
+      },
+      {
+        "kind": "improved",
+        "text": "Write Tag's brand field opens the same manufacturer picker as the rest of the app, with your backend's manufacturers and the catalogue's."
+      },
+      {
+        "kind": "improved",
+        "text": "The Printer tab appears once a printer is set up, in a new optional step of the welcome guide or in Settings → Printer, where the printer can also be removed."
+      }
+    ]
+  },
+  {
+    "version": "0.32",
+    "date": "2026-11-15",
+    "headline": "The Printer tab and tags through the U1",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "A Printer tab shows your Snapmaker U1's four toolheads live: assign a spool by picking it or scanning its tag, set a toolhead by hand, or clear it. SpoolKid signs in to Moonraker when the printer asks."
+      },
+      {
+        "kind": "added",
+        "text": "When a toolhead's tag and its Library spool disagree, the toolhead sheet shows both, marks the one the printer uses, and offers Update Library from Tag or sending the other one to the printer."
+      },
+      {
+        "kind": "added",
+        "text": "A tag the U1 has read can be added to the Library as a new spool or linked to an existing one, with spools at the printer's location offered first."
+      },
+      {
+        "kind": "added",
+        "text": "Read and write tags through the U1's RFID readers with the SpoolKid RFID Writer plugin: wherever you read or write a tag, choose the iPhone or RFID reader 1 to 4."
+      },
+      {
+        "kind": "added",
+        "text": "Translucent filaments: their opacity, worked out from TD, is written to TigerTag, OpenTag3D, OpenPrintTag and OpenSpool tags (Write Opacity to Tags in Settings)."
+      },
+      {
+        "kind": "added",
+        "text": "Spools added in the last 24 hours sit in a Recently Added section at the top of the Library list."
+      },
+      {
+        "kind": "improved",
+        "text": "When Spoolman or FilaMan can't be reached, a banner with Try Again shows on Home, Library and Tags, changes to the server are greyed out, lists keep what they last loaded, and open forms keep what you typed."
+      },
+      {
+        "kind": "improved",
+        "text": "The tabs are Home, Printer, Library and Tags, and the app reopens on the tab you used last."
+      },
+      {
+        "kind": "fixed",
+        "text": "A Biqu TD1S connected by USB stays connected."
+      }
+    ]
+  },
+  {
     "version": "0.30.2",
     "date": "2026-11-16",
     "headline": "Tag links that reach the server",

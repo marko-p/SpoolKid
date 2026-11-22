@@ -1,0 +1,602 @@
+[
+  {
+    "version": "0.34",
+    "date": "2026-11-21",
+    "headline": "Color Matching and a fresher label reader",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Group the Library by Color: spools gather by hue family in spectrum order, with No color last."
+      },
+      {
+        "kind": "added",
+        "text": "Color Matching: under the Color grouping, Match a Photo finds the spools closest to the colors you pick from a photo, picked from your photos or taken on the spot. Filter by Color sits beside it and offers color harmonies."
+      },
+      {
+        "kind": "added",
+        "text": "Occasional messages from the developer, such as a request for your vote, open once at launch, and an unanswered one waits as a card on Home."
+      },
+      {
+        "kind": "improved",
+        "text": "Label scanning learns new brands and materials: SpoolKid refreshes its vocabulary from SpoolmanDB once a week over Wi-Fi, and the material menus list the new materials too."
+      },
+      {
+        "kind": "improved",
+        "text": "Write Tag's brand field opens the same manufacturer picker as the rest of the app, with your backend's manufacturers and the catalogue's."
+      },
+      {
+        "kind": "improved",
+        "text": "The Printer tab appears once a printer is set up, in a new optional step of the welcome guide or in Settings → Printer, where the printer can also be removed."
+      }
+    ]
+  },
+  {
+    "version": "0.32",
+    "date": "2026-11-15",
+    "headline": "The Printer tab and tags through the U1",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "A Printer tab shows your Snapmaker U1's four toolheads live: assign a spool by picking it or scanning its tag, set a toolhead by hand, or clear it. SpoolKid signs in to Moonraker when the printer asks."
+      },
+      {
+        "kind": "added",
+        "text": "When a toolhead's tag and its Library spool disagree, the toolhead sheet shows both, marks the one the printer uses, and offers Update Library from Tag or sending the other one to the printer."
+      },
+      {
+        "kind": "added",
+        "text": "A tag the U1 has read can be added to the Library as a new spool or linked to an existing one, with spools at the printer's location offered first."
+      },
+      {
+        "kind": "added",
+        "text": "Read and write tags through the U1's RFID readers with the SpoolKid RFID Writer plugin: wherever you read or write a tag, choose the iPhone or RFID reader 1 to 4."
+      },
+      {
+        "kind": "added",
+        "text": "Translucent filaments: their opacity, worked out from TD, is written to TigerTag, OpenTag3D, OpenPrintTag and OpenSpool tags (Write Opacity to Tags in Settings)."
+      },
+      {
+        "kind": "added",
+        "text": "Spools added in the last 24 hours sit in a Recently Added section at the top of the Library list."
+      },
+      {
+        "kind": "improved",
+        "text": "When Spoolman or FilaMan can't be reached, a banner with Try Again shows on Home, Library and Tags, changes to the server are greyed out, lists keep what they last loaded, and open forms keep what you typed."
+      },
+      {
+        "kind": "improved",
+        "text": "The tabs are Home, Printer, Library and Tags, and the app reopens on the tab you used last."
+      },
+      {
+        "kind": "fixed",
+        "text": "A Biqu TD1S connected by USB stays connected."
+      }
+    ]
+  },
+  {
+    "version": "0.30.2",
+    "date": "2026-11-16",
+    "headline": "Tag links that reach the server",
+    "changes": [
+      {
+        "kind": "fixed",
+        "text": "A tag SpoolKid recognised only from its own record no longer looks linked when the server holds no link. The scan says it isn't linked and offers Link Tag."
+      },
+      {
+        "kind": "added",
+        "text": "Backend → Migration Management copies tag links this iPhone knows to the server, and between Spoolman Tags and SpoolLink."
+      },
+      {
+        "kind": "improved",
+        "text": "Turning SpoolLink on offers to copy links that are only in Spoolman Tags into SpoolLink, so the Snapmaker U1 finds them."
+      }
+    ]
+  },
+  {
+    "version": "0.30.1",
+    "date": "2026-11-08",
+    "headline": "Full Anycubic ACE SKUs",
+    "changes": [
+      {
+        "kind": "fixed",
+        "text": "Anycubic ACE tags read and write SKUs up to 20 characters, so a 17-character ReSpool SKU no longer loses its last character."
+      },
+      {
+        "kind": "improved",
+        "text": "Temperatures taken from a tag's range are rounded to the nearest 5 °C: a 185–200 °C range proposes 195 °C."
+      }
+    ]
+  },
+  {
+    "version": "0.30",
+    "date": "2026-11-04",
+    "headline": "Spool pages, camera color capture and OpenID sign-in",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Read TD and color from a Biqu TD1S connected by USB (firmware 2.0.1 or later), straight into the filament form."
+      },
+      {
+        "kind": "added",
+        "text": "Capture a filament's color with the camera, from any color row. A grey card in the picture corrects the white balance, a white/grey/black card the brightness too, and a short guide explains the best light."
+      },
+      {
+        "kind": "added",
+        "text": "Filaments can store a HueForge TD value, saved where Spoolman→HueForge tools look for it."
+      },
+      {
+        "kind": "added",
+        "text": "Scan Label reads Spoolman and FilaMan QR codes: point the camera at a printed label to open its spool or filament."
+      },
+      {
+        "kind": "added",
+        "text": "Tapping a spool opens its page: Link Tag, Write Tag, Location and Weigh are big tiles at the top, the details sit below, and Edit is there when you need it."
+      },
+      {
+        "kind": "added",
+        "text": "Sign in to Spoolman with OpenID Connect when it sits behind an authenticating proxy (Authentik, Keycloak, oauth2-proxy…)."
+      },
+      {
+        "kind": "added",
+        "text": "FilaMan Tags: turn it on under Tag Links in Tag Identity, and tags you link reach FilaMan's own tag field, so its scale sees them and you can unlink the ones it bound."
+      },
+      {
+        "kind": "improved",
+        "text": "The Tags and Library bottom-bar buttons are larger, centred and named."
+      },
+      {
+        "kind": "improved",
+        "text": "Spool, filament and manufacturer pages open one level deep, so you are never many screens from where you started."
+      },
+      {
+        "kind": "improved",
+        "text": "Weights in the weight card are shown to 0.1 g."
+      },
+      {
+        "kind": "fixed",
+        "text": "Add Spool and Scan Tag respond to a tap again."
+      }
+    ]
+  },
+  {
+    "version": "0.28",
+    "date": "2026-10-30",
+    "headline": "A new Library, multi-color filaments and weight after a print",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "The Library opens on your spools, grouped by filament, manufacturer, material or location, with grams left and linked tags on every row."
+      },
+      {
+        "kind": "added",
+        "text": "Filament and manufacturer pages show their details, spools and stock; tap a group header or a scanned filament to open one."
+      },
+      {
+        "kind": "added",
+        "text": "Multi-color filaments: set several colors in the filament form and Write Tag; they are read and written on OpenSpool, OpenPrintTag, OpenTag3D and TigerTag tags and on every backend, and swatches show every color."
+      },
+      {
+        "kind": "added",
+        "text": "Adjust Weight after a print, from the Scan Result Hub or Edit Spool: enter what the print used, or weigh what is left."
+      },
+      {
+        "kind": "added",
+        "text": "Add Spool takes a count and creates several identical spools at once, each with its own tag section."
+      },
+      {
+        "kind": "added",
+        "text": "Add Spool can start from the filament search, and its initial weight comes from the tag or filament, with quick size chips."
+      },
+      {
+        "kind": "added",
+        "text": "The AccuWeight CK780BLE scale is now read."
+      },
+      {
+        "kind": "improved",
+        "text": "Tags and Library actions moved to a bottom bar, within thumb reach. Tips explain each icon."
+      },
+      {
+        "kind": "improved",
+        "text": "The Library shows how many spools are tagged when Tag Links is on."
+      },
+      {
+        "kind": "improved",
+        "text": "Select Spool lists the most recently used spools first."
+      },
+      {
+        "kind": "fixed",
+        "text": "Library search keeps the keyboard while you type."
+      },
+      {
+        "kind": "fixed",
+        "text": "Truncated tags match their filament, and rewriting a spool ID keeps every other field on the tag."
+      }
+    ]
+  },
+  {
+    "version": "0.27",
+    "date": "2026-10-23",
+    "headline": "Catalogue weights, OpenPrintTag countdown and server addresses",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "OpenPrintTag tags are written in Prusa's layout with the spool's weights, diameter and consumption, so the printer can count down what is left. Scanning one shows the remaining filament."
+      },
+      {
+        "kind": "added",
+        "text": "On FilaMan, Select Filament and Scan Result search FilaManDB."
+      },
+      {
+        "kind": "added",
+        "text": "A catalogue filament brings its empty spool weight along: a new spool starts from it, and the Empty Spools picker lists the catalogue's empty-spool weights."
+      },
+      {
+        "kind": "added",
+        "text": "Plain-grams Bluetooth scales of the CA-frame kind are now read."
+      },
+      {
+        "kind": "improved",
+        "text": "Connection forms show the address SpoolKid will use, or what to fix; typed server addresses are handled more forgivingly."
+      },
+      {
+        "kind": "improved",
+        "text": "A scanned tag's net weight, consumption and empty spool weight fill the new spool and its filament."
+      },
+      {
+        "kind": "improved",
+        "text": "Inspect Tag and the Tag Explorer name ICODE SLIX and SLIX2 chips."
+      },
+      {
+        "kind": "fixed",
+        "text": "A web page returned by the server is reported as an error instead of being treated as data or a working connection."
+      },
+      {
+        "kind": "fixed",
+        "text": "OpenSpool tags without temperatures, or with numeric ones, are read as OpenSpool."
+      },
+      {
+        "kind": "fixed",
+        "text": "OpenPrintTag no longer writes 0 for a field left blank."
+      },
+      {
+        "kind": "fixed",
+        "text": "Save & Write writes ELEGOO tags as the suggested filament, and Add Spool shows the written tags and keeps Linked Tags changes."
+      },
+      {
+        "kind": "fixed",
+        "text": "Formatting a blank SLIX2 tag no longer writes its counter block."
+      }
+    ]
+  },
+  {
+    "version": "0.26",
+    "date": "2026-10-18",
+    "headline": "Inspect Tag and brand defaults",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Inspect Tag, in the ⋯ menu after a scan, shows the tag's chip, memory use, format and every record as text and hex. Copy a record's hex, or share the whole report."
+      },
+      {
+        "kind": "added",
+        "text": "An empty spool can be the default for its manufacturer's spools: a new spool takes the empty weight of its filament's brand, and the empty-spool picker lists that brand first."
+      },
+      {
+        "kind": "improved",
+        "text": "The spool form's Filament row shows the chosen filament's swatch, material, diameter and weight."
+      },
+      {
+        "kind": "fixed",
+        "text": "Scanning a tag whose link record is corrupt no longer closes the app."
+      },
+      {
+        "kind": "fixed",
+        "text": "On iOS 27, deleting a filament or manufacturer that other records use works again; the final warning no longer closes the moment it opens."
+      }
+    ]
+  },
+  {
+    "version": "0.25",
+    "date": "2026-10-12",
+    "headline": "Tag identity, filament tags and empty spools",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "SpoolKid can act as a Spoolman 0.27 tag reader: pair it in Library → Spoolman → Tag Reader, and a paired browser opens the spool of each tag you scan."
+      },
+      {
+        "kind": "added",
+        "text": "Tags can identify a filament (Spoolman 0.27 and the on-device Library): scan one to see the filament and its spools, and link tags from the filament's form."
+      },
+      {
+        "kind": "added",
+        "text": "Empty Spools: keep a library of empty spool weights with manufacturers and photos, mark one as the default for new spools, and pick one in the spool form or Weigh Spools."
+      },
+      {
+        "kind": "added",
+        "text": "Choose how tags identify spools: Tag Links (a tag finds the spool it is linked to) or Spool ID (the ID written on the tag). New installs ask once; upgrades keep their behaviour."
+      },
+      {
+        "kind": "added",
+        "text": "The on-device Library now keeps tag links too, so every tag you link finds its spool when scanned."
+      },
+      {
+        "kind": "improved",
+        "text": "Transfer Tag and Link Tag pick a spool or a filament in one picker."
+      },
+      {
+        "kind": "improved",
+        "text": "Manufacturers: pick one from your own list or your backend's catalogue (SpoolmanDB, or FilaManDB on FilaMan) when adding a manufacturer, editing a filament, or describing an empty spool. A new one is added when you save the filament."
+      },
+      {
+        "kind": "improved",
+        "text": "Tag links are no longer read from a spool's Lot/Batch field (lot_nr, card_uid:…); they live in Tags (card_uids, or Spoolman's own Tags)."
+      },
+      {
+        "kind": "improved",
+        "text": "Select Filament: when only one list matches your search, the other says \"No matches\" in one line, so SpoolmanDB results stay visible above the keyboard."
+      },
+      {
+        "kind": "fixed",
+        "text": "Moving the on-device Library to a server no longer forgets the empty locations and location tags SpoolKid keeps for your servers."
+      },
+      {
+        "kind": "fixed",
+        "text": "A Library, location or password save that fails now says so instead of looking saved."
+      },
+      {
+        "kind": "fixed",
+        "text": "Weigh Spools' (i) buttons are reachable with VoiceOver."
+      }
+    ]
+  },
+  {
+    "version": "0.24",
+    "date": "2026-10-08",
+    "headline": "ELEGOO writing and Spoolman Tags",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "SpoolKid can now write ELEGOO tags, picking the filament from ELEGOO's own catalog."
+      },
+      {
+        "kind": "added",
+        "text": "On Spoolman 0.27 and later, tag links are stored in Spoolman's own Tags as well as card_uids, and a Spoolman Tag link wins every read."
+      },
+      {
+        "kind": "added",
+        "text": "Settings can copy your tag links from card_uids into Spoolman Tags, and delete card_uids once Spoolman Tags hold every link (or the other way round)."
+      },
+      {
+        "kind": "added",
+        "text": "Third-party notices are listed in Settings → SpoolKid → Acknowledgements."
+      },
+      {
+        "kind": "improved",
+        "text": "Recent Tags remember each tag's format and open Write Tag in it."
+      },
+      {
+        "kind": "improved",
+        "text": "Form fields select their value when you tap into them."
+      },
+      {
+        "kind": "improved",
+        "text": "The on-device Library holds up to 5,000 spools, and the Library tab refreshes its spools each time you return to it."
+      },
+      {
+        "kind": "improved",
+        "text": "Tag formats are shown by name rather than logo, and the first-scan support prompt is gone."
+      },
+      {
+        "kind": "improved",
+        "text": "The filament import catalog loads from whichever backend serves one."
+      },
+      {
+        "kind": "fixed",
+        "text": "A small difference in the Anycubic tag header kept the Anycubic ACE Pro from reading tags written by SpoolKid; SpoolKid now writes it exactly as a factory tag does."
+      },
+      {
+        "kind": "fixed",
+        "text": "Blank ISO 15693 tags are formatted before writing and read as \"Empty tag\"."
+      },
+      {
+        "kind": "fixed",
+        "text": "A pre-filled spool ID that no longer names a spool is cleared, and an ACE Recent Tag's SM<id> SKU is read as its spool ID."
+      }
+    ]
+  },
+  {
+    "version": "0.23",
+    "date": "2026-10-01",
+    "headline": "Blank tags and local servers",
+    "changes": [
+      {
+        "kind": "fixed",
+        "text": "A blank tag, including one just cleared with Empty This Tag, now reads as \"Empty tag\" instead of \"Unknown tag format\"."
+      },
+      {
+        "kind": "fixed",
+        "text": "Spoolman and FilaMan servers addressed by a dotted hostname such as spoolman.lan now connect over plain HTTP, and trusted self-signed HTTPS reaches them too."
+      },
+      {
+        "kind": "fixed",
+        "text": "The Tag Explorer no longer calls a tag whose NDEF area holds no real records \"NDEF, but no format SpoolKid knows\"."
+      }
+    ]
+  },
+  {
+    "version": "0.22",
+    "date": "2026-09-28",
+    "headline": "Simpler screens, clearer answers",
+    "changes": [
+      {
+        "kind": "improved",
+        "text": "The Scan Result Hub is laid out as Spool and Filament sections of tiles, with tag maintenance in a ⋯ menu and each button explained behind an (i)."
+      },
+      {
+        "kind": "improved",
+        "text": "Create New Spool and Transfer Tag ask which tags move, and a tag scanned in the spool form ticks its own toggle."
+      },
+      {
+        "kind": "improved",
+        "text": "The Tags tab is tidier: Scan Tag and Scan Label float over the list side by side, Write Tag replaces Add, and first-run tips appear one at a time and retire once you use the feature."
+      },
+      {
+        "kind": "improved",
+        "text": "Settings opens from a cog with About as its last section, the Library tab is called Library on every backend, and vendors are now Manufacturers throughout."
+      },
+      {
+        "kind": "improved",
+        "text": "Explanations in the spool form, Weigh Spools and every Home card now sit behind (i) buttons, including how each Home number is worked out."
+      },
+      {
+        "kind": "improved",
+        "text": "A spool's location is picked from one menu, with None clearing it; Manage Locations has a single Assign Spools button and a shorter toolbar."
+      },
+      {
+        "kind": "fixed",
+        "text": "A tag linked through FilaMan's RFID field is no longer copied into SpoolKid's tag mappings, and Unlink, Transfer and tag moves are only offered when the tag can actually be released."
+      },
+      {
+        "kind": "fixed",
+        "text": "The Scan Result Hub never offers Link and Unlink for the same tag, and stays current after it links or creates a spool."
+      },
+      {
+        "kind": "fixed",
+        "text": "The migration sheet opens by itself only once per backend, and Linked Tags is disabled where the backend cannot store tag mappings."
+      }
+    ]
+  },
+  {
+    "version": "0.21",
+    "date": "2026-09-26",
+    "headline": "Steadier scale, safer tags",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Empty This Tag and Unlink sit beside Clone Tag in the Scan Result Hub, each saying what it changes and what it leaves alone — and erasing works on ACE, ELEGOO and TigerTag tags too."
+      },
+      {
+        "kind": "added",
+        "text": "OpenTag3D tags now carry manufacture date, drying temperature and time, and empty-spool weight."
+      },
+      {
+        "kind": "added",
+        "text": "When assigning locations, a spool tag that matched nothing can be linked to the spool you picked, so the next scan finds it."
+      },
+      {
+        "kind": "added",
+        "text": "A label scan that never quite settles offers \"Use This Reading\" instead of leaving Cancel as the only way out."
+      },
+      {
+        "kind": "improved",
+        "text": "Scale readings are more trustworthy: a reading cut off by a dropped connection is no longer taken as final or as zero, and SpoolKid keeps reconnecting a scale it had given up on."
+      },
+      {
+        "kind": "improved",
+        "text": "The filament form suggests a density from the material, and scanned filaments always get one, so Spoolman accepts them."
+      },
+      {
+        "kind": "improved",
+        "text": "Sort menus show which option is selected, and switching backend keeps you on the tab you were on."
+      },
+      {
+        "kind": "fixed",
+        "text": "Migrating to Spoolman flags missing density or diameter before uploading, and anything the server could not store is listed and keeps your Library from being wiped."
+      },
+      {
+        "kind": "fixed",
+        "text": "TigerTag drying times are read as hours, not minutes; ELEGOO filament names and Anycubic scan labels read correctly; FilaMan's spool statuses appear when the spool form opens from a scan."
+      }
+    ]
+  },
+  {
+    "version": "0.20",
+    "date": "2026-09-17",
+    "headline": "TigerTag arrives",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Reads and writes TigerTag spool tags — the open standard eSun, Sunlu and Rosa3D ship — with material, brand, temperatures, weight and drying info resolved from the official registry."
+      },
+      {
+        "kind": "added",
+        "text": "Factory-signed TigerTag+ chips are verified offline, and the scan hub says whether a tag is genuine."
+      },
+      {
+        "kind": "added",
+        "text": "The write form's material and brand show exactly which registry entry will be written, with a searchable picker."
+      }
+    ]
+  },
+  {
+    "version": "0.19",
+    "date": "2026-09-16",
+    "headline": "Put spools in their place",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Introduces drag-and-drop in location management. Drag spools between locations, and drag locations into your own order; SpoolKid remembers locations order."
+      },
+      {
+        "kind": "added",
+        "text": "Select several spools and assign them all to one location at once, or sort locations by name, spool count, or your own arrangement."
+      },
+      {
+        "kind": "added",
+        "text": "Clone Tag copies a scanned tag onto another tag byte for byte, offered right in the Scan Result Hub."
+      },
+      {
+        "kind": "added",
+        "text": "Anycubic ACE writes now put the spool's ID in the SKU by default, and the write form takes diameter and net weight."
+      },
+      {
+        "kind": "improved",
+        "text": "Your Bluetooth scale is set up once, and SpoolKid learns its zero point by watching it rest empty."
+      },
+      {
+        "kind": "improved",
+        "text": "A scanned spool's filament opens for editing with a tap, a missing manufacturer or filament can be created on the spot, and captions say where each detail came from."
+      },
+      {
+        "kind": "improved",
+        "text": "Deleting a vendor, filament, or location that spools still use explains what would go with it and lets you decide, instead of failing quietly."
+      },
+      {
+        "kind": "fixed",
+        "text": "A refused delete, archive, or write now says so instead of closing as if it worked, and FilaMan's own error messages are read properly."
+      },
+      {
+        "kind": "fixed",
+        "text": "ELEGOO and OpenTag3D tags are read straight off the tag instead of by guesswork, and password-protected ACE tags are refused with an explanation."
+      }
+    ]
+  },
+  {
+    "version": "0.18",
+    "date": "2026-09-08",
+    "headline": "Weigh your spools",
+    "changes": [
+      {
+        "kind": "added",
+        "text": "Weigh a spool on a kitchen scale and SpoolKid works out what filament is left."
+      },
+      {
+        "kind": "added",
+        "text": "Previous measurements are listed on the spool, including ones recorded by FilaMan."
+      },
+      {
+        "kind": "improved",
+        "text": "Search now matches your words across every field instead of the whole phrase against one."
+      },
+      {
+        "kind": "improved",
+        "text": "Every scan routes to the Scan Result Hub, whichever backend and settings you use."
+      },
+      {
+        "kind": "fixed",
+        "text": "The spool form explains why a weight mode is unavailable instead of showing nothing."
+      }
+    ]
+  }
+]

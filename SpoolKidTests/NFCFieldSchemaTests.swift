@@ -20,6 +20,14 @@ struct NFCFieldSchemaTests {
         #expect(!ids.contains("subtype"))
     }
 
+    /// The ELEGOO block holds no brand or name, so the form offers neither;
+    /// diameter and net weight are on the tag, so they are always shown.
+    @Test func elegooOffersExactlyWhatTheBlockHolds() {
+        let fields = NFCFieldCatalog.fields(for: .elegoo)
+        #expect(fields.map(\.id) == ["material", "color_hex", "temp_range", "diameter", "nominal_weight"])
+        #expect(fields.allSatisfy { $0.isEssential })
+    }
+
     @Test func schemaInvariantsHoldAcrossFormats() {
         for format in TagFormat.allCases {
             let fields = NFCFieldCatalog.fields(for: format)

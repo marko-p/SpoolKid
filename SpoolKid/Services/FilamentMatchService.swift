@@ -2,15 +2,28 @@
 //  FilamentMatchService.swift
 //  SpoolKid
 //
-//  Purpose: Heuristic scoring of Spoolman spools against tag data.
-//  Weights: material 35, brand 20, name tokens 20, color RGB distance 15, temps 7, diameter 3.
-//  Brand mismatch caps confidence at 79 to prevent auto-accept.
+//  Purpose: Heuristic scoring of filament candidates against tag data.
+//
+//  Two weight sets live here — same service, different questions:
+//
+//  1. Spool matching (score/against — `FilamentMatchResult`):
+//     material 35, brand 20, name tokens 20, color Lab 15, temps 7, diameter 3.
+//     Brand mismatch caps confidence at 79. Used by the scan-resolution cascade
+//     to rank existing Spoolman spools.
+//
+//  2. Suggestion scoring (scoreFilament — `Int`):
+//     material 40, brand 25, name 15 (exact) / 7 (substring), color Lab 20,
+//     near-miss penalty −8 (color ≤ 2 but material+brand match).
+//     Used by `ScanResolutionService.newSpoolSourceCandidates` to rank candidate
+//     filaments (local + the backend's catalogue) for the "Search ‹catalogue›
+//     for Similar Filaments" list.
+//
 //  Auto-accept: threshold 0 = always ask, 101 = never accept; brand mismatch always blocks.
 //
 
 //
 // Copyright (c) 2026 Marko Praprotnik. All rights reserved.
-// Licensed under the MIT License.
+// Licensed under the GNU AGPL v3.0 only; commercial licenses: see COMMERCIAL.md.
 // See LICENSE in the project root for details.
 //
 
@@ -19,7 +32,7 @@ import Foundation
 // MARK: - Result types
 
 struct FilamentMatchResult: Sendable {
-    let spool: SpoolmanSpool
+    let spool: Spool
     /// 0–100
     let confidence: Int
     let band: ConfidenceBand
@@ -38,7 +51,7 @@ enum FilamentMatchService {
 
     // MARK: Public API
 
-    static func score(tag: FilamentTagData, against spool: SpoolmanSpool) -> FilamentMatchResult {
+    static func score(tag: FilamentTagData, against spool: Spool) -> FilamentMatchResult {
         var points = 0
 
         // Material (35 pts)
@@ -62,23 +75,17 @@ enum FilamentMatchService {
             points += Int(jaccard * 20)
         }
 
-        // Color (15 pts) — Euclidean RGB distance, max distance sqrt(3)*255 ≈ 441.7
-        if let tagRGB = rgbComponents(hex: tag.colorHex),
-           let spoolRGB = rgbComponents(hex: spool.filament.colorHex ?? "") {
-            let dist = rgbDistance(tagRGB, spoolRGB)
-            let similarity = 1.0 - (dist / 441.7)
-            points += Int(similarity * 15)
-        }
+        // Color (15 pts) — Perceptual Lab similarity (CIELAB ΔE76)
+        let colorMatch = colorSimilarity(tag: tag.colors.hexes, filament: spool.filament.colors.hexes)
+        points += Int(colorMatch * 15)
 
         // Temperatures (7 pts)
-        if let spoolExtruder = spool.filament.settingsExtruderTemp {
-            let midNozzle = (tag.minNozzleTemp + tag.maxNozzleTemp) / 2
+        if let spoolExtruder = spool.filament.settingsExtruderTemp, let midNozzle = tag.statedExtruderTemp {
             let nozzleDelta = abs(spoolExtruder - midNozzle)
             if nozzleDelta <= 10 { points += 4 }
             else if nozzleDelta <= 30 { points += 2 }
         }
-        if let spoolBed = spool.filament.settingsBedTemp {
-            let midBed = (tag.minBedTemp + tag.maxBedTemp) / 2
+        if let spoolBed = spool.filament.settingsBedTemp, let midBed = tag.statedBedTemp {
             let bedDelta = abs(spoolBed - midBed)
             if bedDelta <= 10 { points += 3 }
             else if bedDelta <= 20 { points += 1 }
@@ -104,10 +111,60 @@ enum FilamentMatchService {
         )
     }
 
-    static func rank(tag: FilamentTagData, spools: [SpoolmanSpool]) -> [FilamentMatchResult] {
+    static func rank(tag: FilamentTagData, spools: [Spool]) -> [FilamentMatchResult] {
         spools
             .map { score(tag: tag, against: $0) }
             .sorted { $0.confidence > $1.confidence }
+    }
+
+    static func scoreFilament(
+        tag: FilamentTagData,
+        name: String?,
+        material: String?,
+        brand: String?,
+        colorHexes: [String]
+    ) -> Int {
+        var score = 0
+        let tagMaterial = tag.material.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let tagBrand = tag.brand.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let tagName = (tag.name ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        if (material ?? "").lowercased() == tagMaterial { score += 40 }
+        if (brand ?? "").lowercased() == tagBrand { score += 25 }
+        if let candidateName = name?.lowercased(), !tagName.isEmpty {
+            if candidateName == tagName { score += 15 }
+            else if candidateName.contains(tagName) || tagName.contains(candidateName) { score += 7 }
+        }
+
+        let colorMatch = colorSimilarity(tag: tag.colors.hexes, filament: colorHexes)
+        let colorScore = Int((colorMatch * 20.0).rounded())
+        score += colorScore
+
+        if colorScore <= 2,
+           (material ?? "").lowercased() == tagMaterial,
+           (brand ?? "").lowercased() == tagBrand {
+            score -= 8
+        }
+
+        return score
+    }
+
+    /// How alike a tag's colors and a filament's colors are, 0…1.
+    ///
+    /// A single color on either side compares first with first, as it always
+    /// has. Two or more on both sides compare as sets, ignoring order: each tag
+    /// color scores its best match among the filament's colors, the mean of
+    /// those is scaled by how many colors the two sides do not share. No
+    /// colors on one side leave the comparison to the other side's first color.
+    static func colorSimilarity(tag: [String], filament: [String]) -> Double {
+        guard tag.count >= 2, filament.count >= 2 else {
+            return ColorMatching.similarity01(hexA: tag.first ?? "", hexB: filament.first)
+        }
+        let bestMatches = tag.map { tagHex in
+            filament.map { ColorMatching.similarity01(hexA: tagHex, hexB: $0) }.max() ?? 0
+        }
+        let mean = bestMatches.reduce(0, +) / Double(bestMatches.count)
+        return mean * Double(min(tag.count, filament.count)) / Double(max(tag.count, filament.count))
     }
 
     /// Returns true only when all conditions are met:
@@ -137,24 +194,4 @@ enum FilamentMatchService {
         )
     }
 
-    private static func rgbComponents(hex: String) -> (Double, Double, Double)? {
-        let clean = hex
-            .trimmingCharacters(in: CharacterSet(charactersIn: "#"))
-            .trimmingCharacters(in: .whitespaces)
-        guard clean.count == 6, let value = UInt32(clean, radix: 16) else { return nil }
-        let r = Double((value >> 16) & 0xFF)
-        let g = Double((value >>  8) & 0xFF)
-        let b = Double( value        & 0xFF)
-        return (r, g, b)
-    }
-
-    private static func rgbDistance(
-        _ a: (Double, Double, Double),
-        _ b: (Double, Double, Double)
-    ) -> Double {
-        let dr = a.0 - b.0
-        let dg = a.1 - b.1
-        let db = a.2 - b.2
-        return sqrt(dr*dr + dg*dg + db*db)
-    }
 }

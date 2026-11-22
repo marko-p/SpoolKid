@@ -1,0 +1,950 @@
+[
+  {
+    "name": "Black Forest Filaments"
+  },
+  {
+    "name": "G3D Pro (Grossiste 3D)"
+  },
+  {
+    "name": "Keene Village Plastics"
+  },
+  {
+    "name": "Filamentos 3D Brasil"
+  },
+  {
+    "name": "3D Printer Filament"
+  },
+  {
+    "name": "California Filament"
+  },
+  {
+    "name": "3D Printing Canada"
+  },
+  {
+    "name": "American Filament"
+  },
+  {
+    "name": "Bavaria Filaments"
+  },
+  {
+    "name": "Monofilament (UA)"
+  },
+  {
+    "name": "Factory Filament"
+  },
+  {
+    "name": "Fortis Filaments"
+  },
+  {
+    "name": "Fusion Filaments"
+  },
+  {
+    "name": "Professional Lab"
+  },
+  {
+    "name": "Recycling Fabrik"
+  },
+  {
+    "name": "Redline Filament"
+  },
+  {
+    "name": "Atomic Filament"
+  },
+  {
+    "name": "Filaments Depot"
+  },
+  {
+    "name": "Geek Fil/lament"
+  },
+  {
+    "name": "Xingtongzhilian"
+  },
+  {
+    "name": "Envirolaser 3D"
+  },
+  {
+    "name": "Filament Unger"
+  },
+  {
+    "name": "Material4Print"
+  },
+  {
+    "name": "Polar Filament"
+  },
+  {
+    "name": "RatRig Punkfil"
+  },
+  {
+    "name": "SmartMaterials"
+  },
+  {
+    "name": "Amazon Basics"
+  },
+  {
+    "name": "Bambu Lab P2S"
+  },
+  {
+    "name": "Chitu Systems"
+  },
+  {
+    "name": "Filamentworld"
+  },
+  {
+    "name": "Matterhackers"
+  },
+  {
+    "name": "México Makers"
+  },
+  {
+    "name": "Printed Solid"
+  },
+  {
+    "name": "AIO Robotics"
+  },
+  {
+    "name": "ATARAXIA ART"
+  },
+  {
+    "name": "Bestfilament"
+  },
+  {
+    "name": "Copymaster3D"
+  },
+  {
+    "name": "Das Filament"
+  },
+  {
+    "name": "Devil Design"
+  },
+  {
+    "name": "Filament Hub"
+  },
+  {
+    "name": "Filaments.CA"
+  },
+  {
+    "name": "OWL-Filament"
+  },
+  {
+    "name": "Paramount 3D"
+  },
+  {
+    "name": "PrimaCreator"
+  },
+  {
+    "name": "Push Plastic"
+  },
+  {
+    "name": "SA 3D Fusion"
+  },
+  {
+    "name": "Stronghero3d"
+  },
+  {
+    "name": "The Filament"
+  },
+  {
+    "name": "3D Filament"
+  },
+  {
+    "name": "3D Solutech"
+  },
+  {
+    "name": "Arianeplast"
+  },
+  {
+    "name": "Clas Ohlson"
+  },
+  {
+    "name": "FF SUNSENKJ"
+  },
+  {
+    "name": "Filament PM"
+  },
+  {
+    "name": "FilamentOne"
+  },
+  {
+    "name": "Fillamentum"
+  },
+  {
+    "name": "Gizmo Dorks"
+  },
+  {
+    "name": "GreenGate3D"
+  },
+  {
+    "name": "Hobby Lobby"
+  },
+  {
+    "name": "Maker Geeks"
+  },
+  {
+    "name": "NTH Grillon"
+  },
+  {
+    "name": "Polyalchemy"
+  },
+  {
+    "name": "PrimaSelect"
+  },
+  {
+    "name": "SA Filament"
+  },
+  {
+    "name": "Siraya Tech"
+  },
+  {
+    "name": "Smart Print"
+  },
+  {
+    "name": "ThriftyMake"
+  },
+  {
+    "name": "Tucab Fil3D"
+  },
+  {
+    "name": "3D Maliang"
+  },
+  {
+    "name": "Alchemakes"
+  },
+  {
+    "name": "Capital 3D"
+  },
+  {
+    "name": "DURAMIC 3D"
+  },
+  {
+    "name": "Filarte 3D"
+  },
+  {
+    "name": "FlashForge"
+  },
+  {
+    "name": "FormFutura"
+  },
+  {
+    "name": "Hobby King"
+  },
+  {
+    "name": "I3D Tested"
+  },
+  {
+    "name": "InkStation"
+  },
+  {
+    "name": "Kaisertech"
+  },
+  {
+    "name": "National3d"
+  },
+  {
+    "name": "PRILINE 3D"
+  },
+  {
+    "name": "PrimaValue"
+  },
+  {
+    "name": "PrintOnion"
+  },
+  {
+    "name": "Protopasta"
+  },
+  {
+    "name": "3D Fillies"
+  },
+  {
+    "name": "3DFillies"
+  },
+  {
+    "name": "Aceaddity"
+  },
+  {
+    "name": "add:north"
+  },
+  {
+    "name": "Ankermake"
+  },
+  {
+    "name": "AzureFilm"
+  },
+  {
+    "name": "Bambu Lab"
+  },
+  {
+    "name": "ColorFabb"
+  },
+  {
+    "name": "Cookiecad"
+  },
+  {
+    "name": "D3D Sigma"
+  },
+  {
+    "name": "DOWELL 3D"
+  },
+  {
+    "name": "Fiberlogy"
+  },
+  {
+    "name": "Filaprint"
+  },
+  {
+    "name": "Francofil"
+  },
+  {
+    "name": "JUSTMAKER"
+  },
+  {
+    "name": "kexcelled"
+  },
+  {
+    "name": "Lindgaard"
+  },
+  {
+    "name": "Lotactree"
+  },
+  {
+    "name": "Monoprice"
+  },
+  {
+    "name": "Nexaforge"
+  },
+  {
+    "name": "NOVAMAKER"
+  },
+  {
+    "name": "PanChroma"
+  },
+  {
+    "name": "Pancolour"
+  },
+  {
+    "name": "Plastspaw"
+  },
+  {
+    "name": "Polymaker"
+  },
+  {
+    "name": "PolyTerra"
+  },
+  {
+    "name": "Printalot"
+  },
+  {
+    "name": "Printomax"
+  },
+  {
+    "name": "Prusament"
+  },
+  {
+    "name": "QIDI Tech"
+  },
+  {
+    "name": "Renkforce"
+  },
+  {
+    "name": "RepRapper"
+  },
+  {
+    "name": "SainSmart"
+  },
+  {
+    "name": "Siddament"
+  },
+  {
+    "name": "SliceWorx"
+  },
+  {
+    "name": "Snapmaker"
+  },
+  {
+    "name": "StarPlast"
+  },
+  {
+    "name": "Threebees"
+  },
+  {
+    "name": "Tianse-3D"
+  },
+  {
+    "name": "Ujoybio3d"
+  },
+  {
+    "name": "3D Plast"
+  },
+  {
+    "name": "3DACTIVE"
+  },
+  {
+    "name": "3Dgenius"
+  },
+  {
+    "name": "AICOPYTO"
+  },
+  {
+    "name": "Alzament"
+  },
+  {
+    "name": "Ambrosia"
+  },
+  {
+    "name": "Amoybaby"
+  },
+  {
+    "name": "Ampertec"
+  },
+  {
+    "name": "Anycubic"
+  },
+  {
+    "name": "BASICFIL"
+  },
+  {
+    "name": "colorfil"
+  },
+  {
+    "name": "Creality"
+  },
+  {
+    "name": "CREOZONE"
+  },
+  {
+    "name": "Econofil"
+  },
+  {
+    "name": "Enotepad"
+  },
+  {
+    "name": "FilaBees"
+  },
+  {
+    "name": "FilaCube"
+  },
+  {
+    "name": "Filaform"
+  },
+  {
+    "name": "Forshape"
+  },
+  {
+    "name": "Fremover"
+  },
+  {
+    "name": "Fugacity"
+  },
+  {
+    "name": "Geeetech"
+  },
+  {
+    "name": "Giantarm"
+  },
+  {
+    "name": "Hatchbox"
+  },
+  {
+    "name": "IIID Max"
+  },
+  {
+    "name": "IkSystem"
+  },
+  {
+    "name": "Inslogic"
+  },
+  {
+    "name": "iSanmate"
+  },
+  {
+    "name": "Kingroon"
+  },
+  {
+    "name": "Likesilk"
+  },
+  {
+    "name": "Locyfens"
+  },
+  {
+    "name": "MakerBot"
+  },
+  {
+    "name": "MakerLab"
+  },
+  {
+    "name": "MarsWork"
+  },
+  {
+    "name": "Matter3D"
+  },
+  {
+    "name": "Neofil3D"
+  },
+  {
+    "name": "NinjaTek"
+  },
+  {
+    "name": "No Brand"
+  },
+  {
+    "name": "Numakers"
+  },
+  {
+    "name": "Overture"
+  },
+  {
+    "name": "Polaroid"
+  },
+  {
+    "name": "PolyMate"
+  },
+  {
+    "name": "Princore"
+  },
+  {
+    "name": "Print-Me"
+  },
+  {
+    "name": "Printbed"
+  },
+  {
+    "name": "Sakata3D"
+  },
+  {
+    "name": "Smartfil"
+  },
+  {
+    "name": "Sparta3D"
+  },
+  {
+    "name": "Spectrum"
+  },
+  {
+    "name": "Splice3D"
+  },
+  {
+    "name": "TecBears"
+  },
+  {
+    "name": "TECSONAR"
+  },
+  {
+    "name": "TEQStone"
+  },
+  {
+    "name": "Tinmorry"
+  },
+  {
+    "name": "Toksen3D"
+  },
+  {
+    "name": "VOXELPLA"
+  },
+  {
+    "name": "Wellshow"
+  },
+  {
+    "name": "Yuaneang"
+  },
+  {
+    "name": "yxpolyer"
+  },
+  {
+    "name": "3D-Fuel"
+  },
+  {
+    "name": "3DHoJor"
+  },
+  {
+    "name": "3DKordo"
+  },
+  {
+    "name": "3DPower"
+  },
+  {
+    "name": "3DTrcek"
+  },
+  {
+    "name": "3DXTECH"
+  },
+  {
+    "name": "AURAPOL"
+  },
+  {
+    "name": "Buddy3D"
+  },
+  {
+    "name": "CMACAIV"
+  },
+  {
+    "name": "Comgrow"
+  },
+  {
+    "name": "Conjure"
+  },
+  {
+    "name": "Creator"
+  },
+  {
+    "name": "DEEPLEE"
+  },
+  {
+    "name": "Extrudr"
+  },
+  {
+    "name": "Fiberon"
+  },
+  {
+    "name": "Filalab"
+  },
+  {
+    "name": "Filaxix"
+  },
+  {
+    "name": "Gembird"
+  },
+  {
+    "name": "Generic"
+  },
+  {
+    "name": "GratKit"
+  },
+  {
+    "name": "Grilon3"
+  },
+  {
+    "name": "Gryddle"
+  },
+  {
+    "name": "Haosegd"
+  },
+  {
+    "name": "Hellbot"
+  },
+  {
+    "name": "Hello3D"
+  },
+  {
+    "name": "iSANGHU"
+  },
+  {
+    "name": "JAMG HE"
+  },
+  {
+    "name": "KELEIDI"
+  },
+  {
+    "name": "Kretrum"
+  },
+  {
+    "name": "NevsBye"
+  },
+  {
+    "name": "Nobufil"
+  },
+  {
+    "name": "Pinball"
+  },
+  {
+    "name": "PureFil"
+  },
+  {
+    "name": "Rambery"
+  },
+  {
+    "name": "Recreus"
+  },
+  {
+    "name": "Rene_kl"
+  },
+  {
+    "name": "SOLEYIN"
+  },
+  {
+    "name": "SPOOL3D"
+  },
+  {
+    "name": "STLFLIX"
+  },
+  {
+    "name": "Voolt3D"
+  },
+  {
+    "name": "Voxelab"
+  },
+  {
+    "name": "Zyltech"
+  },
+  {
+    "name": "123-3D"
+  },
+  {
+    "name": "3DFila"
+  },
+  {
+    "name": "3DFILS"
+  },
+  {
+    "name": "3DJake"
+  },
+  {
+    "name": "AltTab"
+  },
+  {
+    "name": "Amolen"
+  },
+  {
+    "name": "Bblife"
+  },
+  {
+    "name": "Behant"
+  },
+  {
+    "name": "BING3D"
+  },
+  {
+    "name": "CAILAB"
+  },
+  {
+    "name": "Carbon"
+  },
+  {
+    "name": "CCTREE"
+  },
+  {
+    "name": "Closin"
+  },
+  {
+    "name": "CoLiDo"
+  },
+  {
+    "name": "Dikale"
+  },
+  {
+    "name": "Dremel"
+  },
+  {
+    "name": "ELEGOO"
+  },
+  {
+    "name": "Epelay"
+  },
+  {
+    "name": "Eryone"
+  },
+  {
+    "name": "Eureka"
+  },
+  {
+    "name": "Fusion"
+  },
+  {
+    "name": "Grauts"
+  },
+  {
+    "name": "HP 3DF"
+  },
+  {
+    "name": "HZST3D"
+  },
+  {
+    "name": "Inland"
+  },
+  {
+    "name": "Jarees"
+  },
+  {
+    "name": "Lovoon"
+  },
+  {
+    "name": "Mecpow"
+  },
+  {
+    "name": "Mika3D"
+  },
+  {
+    "name": "Nebula"
+  },
+  {
+    "name": "Noulei"
+  },
+  {
+    "name": "NXTFAB"
+  },
+  {
+    "name": "Pangda"
+  },
+  {
+    "name": "PINRUI"
+  },
+  {
+    "name": "Rosa3D"
+  },
+  {
+    "name": "Slic3D"
+  },
+  {
+    "name": "Tronxy"
+  },
+  {
+    "name": "TTYT3D"
+  },
+  {
+    "name": "Wanhao"
+  },
+  {
+    "name": "Winkle"
+  },
+  {
+    "name": "3DLAB"
+  },
+  {
+    "name": "AMZ3D"
+  },
+  {
+    "name": "CHCKX"
+  },
+  {
+    "name": "DREMC"
+  },
+  {
+    "name": "DUDV2"
+  },
+  {
+    "name": "EIBOS"
+  },
+  {
+    "name": "Ender"
+  },
+  {
+    "name": "Fil X"
+  },
+  {
+    "name": "GST3D"
+  },
+  {
+    "name": "GTMax"
+  },
+  {
+    "name": "iBOSS"
+  },
+  {
+    "name": "IEMAI"
+  },
+  {
+    "name": "LANDU"
+  },
+  {
+    "name": "MKOEM"
+  },
+  {
+    "name": "OVV3D"
+  },
+  {
+    "name": "Prusa"
+  },
+  {
+    "name": "Sovol"
+  },
+  {
+    "name": "SUNLU"
+  },
+  {
+    "name": "TECOR"
+  },
+  {
+    "name": "Yousu"
+  },
+  {
+    "name": "3DEA"
+  },
+  {
+    "name": "Aliz"
+  },
+  {
+    "name": "BASF"
+  },
+  {
+    "name": "BIQU"
+  },
+  {
+    "name": "CC3D"
+  },
+  {
+    "name": "COEX"
+  },
+  {
+    "name": "CR3D"
+  },
+  {
+    "name": "DO3D"
+  },
+  {
+    "name": "eono"
+  },
+  {
+    "name": "EPAX"
+  },
+  {
+    "name": "eSUN"
+  },
+  {
+    "name": "IC3D"
+  },
+  {
+    "name": "Jayo"
+  },
+  {
+    "name": "LUME"
+  },
+  {
+    "name": "NAGA"
+  },
+  {
+    "name": "Real"
+  },
+  {
+    "name": "RuiC"
+  },
+  {
+    "name": "TM3D"
+  },
+  {
+    "name": "YOYI"
+  },
+  {
+    "name": "YUMI"
+  },
+  {
+    "name": "Ziro"
+  },
+  {
+    "name": "3DC"
+  },
+  {
+    "name": "3DE"
+  },
+  {
+    "name": "3DO"
+  },
+  {
+    "name": "AGF"
+  },
+  {
+    "name": "F3D"
+  },
+  {
+    "name": "H3D"
+  },
+  {
+    "name": "ICE"
+  },
+  {
+    "name": "LDO"
+  },
+  {
+    "name": "R3D"
+  },
+  {
+    "name": "XZN"
+  }
+]

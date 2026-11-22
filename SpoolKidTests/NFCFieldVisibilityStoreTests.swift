@@ -14,7 +14,11 @@ struct NFCFieldVisibilityStoreTests {
         .init(format: .openSpool, fieldID: "subtype", key: AppConfig.visibilityNFCOpenSpoolSubtypeKey),
         .init(format: .openSpool, fieldID: "spool_id", key: AppConfig.visibilityNFCOpenSpoolSpoolIDKey),
         .init(format: .openTag3D, fieldID: "subtype", key: AppConfig.visibilityNFCOpenTag3DSubtypeKey),
-        .init(format: .openTag3D, fieldID: "name", key: AppConfig.visibilityNFCOpenTag3DNameKey)
+        .init(format: .openTag3D, fieldID: "name", key: AppConfig.visibilityNFCOpenTag3DNameKey),
+        .init(format: .openTag3D, fieldID: "empty_weight", key: AppConfig.visibilityNFCOpenTag3DEmptyWeightKey),
+        .init(format: .openTag3D, fieldID: "drying_temp", key: AppConfig.visibilityNFCOpenTag3DDryingTempKey),
+        .init(format: .openTag3D, fieldID: "drying_time", key: AppConfig.visibilityNFCOpenTag3DDryingTimeKey),
+        .init(format: .openTag3D, fieldID: "manufactured_date", key: AppConfig.visibilityNFCOpenTag3DManufacturedKey)
     ]
 
     private func makeDefaults(suffix: String) -> UserDefaults {
@@ -74,5 +78,13 @@ struct NFCFieldVisibilityStoreTests {
 
             #expect(defaultHiddenNonEssentialFieldIDs.isSubset(of: mappedFieldIDs))
         }
+    }
+
+    /// The write form's date picker starts on today, so a visible Manufactured
+    /// row would stamp every OpenTag3D tag with its write date. Hidden until
+    /// the user turns it on and sets a real date.
+    @Test func openTag3DManufactureDateStartsHidden() throws {
+        let field = try #require(NFCFieldCatalog.fields(for: .openTag3D).first { $0.id == "manufactured_date" })
+        #expect(!field.defaultVisible)
     }
 }

@@ -20,14 +20,14 @@ private func makeSpool(
     diameter: Double? = 1.75,
     extruderTemp: Int? = 220,
     bedTemp: Int? = 65
-) -> SpoolmanSpool {
-    SpoolmanSpool(
+) -> Spool {
+    Spool(
         id: id,
-        filament: SpoolmanFilament(
+        filament: Filament(
             id: id * 10,
             name: name,
             material: material,
-            vendor: SpoolmanVendor(id: 1, name: vendorName),
+            vendor: Vendor(id: 1, name: vendorName),
             colorHex: colorHex,
             density: nil,
             diameter: diameter,
@@ -39,7 +39,8 @@ private func makeSpool(
         spoolWeight: nil,
         usedWeight: nil,
         price: nil,
-        lotNr: nil
+        lotNr: nil,
+        statusId: nil, externalId: nil, purchaseDate: nil
     )
 }
 
@@ -69,6 +70,7 @@ private func makeTag(
 
 // MARK: - Tests
 
+@MainActor
 struct FilamentMatchServiceTests {
 
     // MARK: Material matching
@@ -151,6 +153,19 @@ struct FilamentMatchServiceTests {
         #expect(scoreIn.confidence > scoreOut.confidence)
     }
 
+    /// The fields hold placeholders when the tag stated nothing; a spool that
+    /// happens to sit on them must not outscore one with no temperatures.
+    @Test func temperaturesATagDoesNotStateScoreNothing() {
+        var tag = makeTag(minNozzle: 200, maxNozzle: 220, minBed: 60, maxBed: 80)
+        tag.nozzleTempsStated = false
+        tag.bedTempsStated = false
+        let onPlaceholders = makeSpool(extruderTemp: 210, bedTemp: 70)
+        let noTemperatures = makeSpool(extruderTemp: nil, bedTemp: nil)
+        let scoreOn = FilamentMatchService.score(tag: tag, against: onPlaceholders)
+        let scoreNone = FilamentMatchService.score(tag: tag, against: noTemperatures)
+        #expect(scoreOn.confidence == scoreNone.confidence)
+    }
+
     // MARK: Confidence bands
 
     @Test func highConfidenceBandAt80OrAbove() {
@@ -231,5 +246,166 @@ struct FilamentMatchServiceTests {
         // Use threshold above result confidence to guarantee block
         let blocked = FilamentMatchService.shouldAutoAccept(result: result, threshold: result.confidence + 1)
         #expect(blocked == false)
+    }
+
+    // MARK: - Suggestion scoring (scoreFilament)
+
+    @Test func scoreFilamentPerfectMatch() {
+        let tag = makeTag(material: "PLA", brand: "Elegoo", name: "PLA Basic", colorHex: "FF0000")
+        let score = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: "PLA Basic",
+            material: "PLA",
+            brand: "Elegoo",
+            colorHexes: ["FF0000"]
+        )
+        #expect(score >= 80)
+    }
+
+    @Test func scoreFilamentMaterialMismatch() {
+        let tag = makeTag(material: "PLA", brand: "Elegoo", name: "PLA Basic", colorHex: "FF0000")
+        let scoreMatch = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: "PLA Basic",
+            material: "PLA",
+            brand: "Elegoo",
+            colorHexes: ["FF0000"]
+        )
+        let scoreMismatch = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: "PLA Basic",
+            material: "PETG",
+            brand: "Elegoo",
+            colorHexes: ["FF0000"]
+        )
+        #expect(scoreMatch > scoreMismatch)
+    }
+
+    @Test func scoreFilamentBrandMismatch() {
+        let tag = makeTag(material: "PLA", brand: "Elegoo", name: "PLA Basic", colorHex: "FF0000")
+        let scoreMatch = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: "PLA Basic",
+            material: "PLA",
+            brand: "Elegoo",
+            colorHexes: ["FF0000"]
+        )
+        let scoreMismatch = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: "PLA Basic",
+            material: "PLA",
+            brand: "eSUN",
+            colorHexes: ["FF0000"]
+        )
+        #expect(scoreMatch > scoreMismatch)
+    }
+
+    @Test func scoreFilamentNameSubstringMatch() {
+        let tag = makeTag(material: "PLA", brand: "Elegoo", name: "PLA", colorHex: "FF0000")
+        let scoreExact = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: "PLA",
+            material: "PLA",
+            brand: "Elegoo",
+            colorHexes: ["FF0000"]
+        )
+        let scoreSubstring = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: "PLA Basic",
+            material: "PLA",
+            brand: "Elegoo",
+            colorHexes: ["FF0000"]
+        )
+        #expect(scoreExact > scoreSubstring)
+    }
+
+    // MARK: Color similarity (set-aware)
+
+    @Test func sameSetAnyOrderScoresOne() {
+        let score = FilamentMatchService.colorSimilarity(
+            tag: ["2D39C9", "A51A52"],
+            filament: ["A51A52", "2D39C9"]
+        )
+        #expect(abs(score - 1.0) < 0.001)
+    }
+
+    @Test func dualVsSingleUsesFirstColors() {
+        let score = FilamentMatchService.colorSimilarity(
+            tag: ["2D39C9", "A51A52"],
+            filament: ["2D39C9"]
+        )
+        #expect(abs(score - ColorMatching.similarity01(hexA: "2D39C9", hexB: "2D39C9")) < 0.001)
+    }
+
+    @Test func differentDualScoresLower() {
+        let same = FilamentMatchService.colorSimilarity(
+            tag: ["2D39C9", "A51A52"],
+            filament: ["2D39C9", "A51A52"]
+        )
+        let different = FilamentMatchService.colorSimilarity(
+            tag: ["2D39C9", "A51A52"],
+            filament: ["FFFFFF", "000000"]
+        )
+        #expect(different < same)
+    }
+
+    @Test func emptyFilamentMatchesToday() {
+        let score = FilamentMatchService.colorSimilarity(tag: ["2D39C9", "A51A52"], filament: [])
+        #expect(abs(score - ColorMatching.similarity01(hexA: "2D39C9", hexB: nil)) < 0.001)
+    }
+
+    @Test func mismatchedSetSizeIsScaledDown() {
+        let full = FilamentMatchService.colorSimilarity(
+            tag: ["2D39C9", "A51A52"],
+            filament: ["2D39C9", "A51A52"]
+        )
+        let extra = FilamentMatchService.colorSimilarity(
+            tag: ["2D39C9", "A51A52"],
+            filament: ["2D39C9", "A51A52", "FFFFFF"]
+        )
+        #expect(abs(extra - full * 2.0 / 3.0) < 0.001)
+    }
+
+    @Test func scoreFilamentAdapterParity() {
+        let tag = makeTag(material: "PLA", brand: "Elegoo", name: "PLA Basic", colorHex: "FF0000")
+        let score1 = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: "PLA Basic",
+            material: "PLA",
+            brand: "Elegoo",
+            colorHexes: ["FF0000"]
+        )
+        let score2 = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: "PLA Basic",
+            material: "PLA",
+            brand: "Elegoo",
+            colorHexes: ["FF0000"]
+        )
+        #expect(score1 == score2)
+    }
+
+    @Test func scoreFilamentNearMissPenalty() {
+        let tag = makeTag(material: "PLA", brand: "Elegoo", name: "PLA Basic", colorHex: "FF0000")
+        let score = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: "PLA Basic",
+            material: "PLA",
+            brand: "Elegoo",
+            colorHexes: ["0000FF"]
+        )
+        #expect(score < 80)
+    }
+
+    @Test func scoreFilamentNilFields() {
+        let tag = makeTag(material: "PLA", brand: "Elegoo", name: nil, colorHex: "FF0000")
+        let score = FilamentMatchService.scoreFilament(
+            tag: tag,
+            name: nil,
+            material: nil,
+            brand: nil,
+            colorHexes: []
+        )
+        #expect(score >= 0)
     }
 }

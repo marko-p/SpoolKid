@@ -2,12 +2,13 @@ import Foundation
 import Testing
 @testable import SpoolKid
 
+@MainActor
 struct SpoolmanModelsDecodingTests {
     @Test func decodesExpandedVendorFields() throws {
         let json = """
         {"id":1,"name":"Polymaker","comment":"notes","empty_spool_weight":140.0,"external_id":"poly","registered":"2026-01-01T00:00:00Z","extra":{"origin":"\\\"catalog\\\""}}
         """.data(using: .utf8)!
-        let vendor = try JSONDecoder().decode(SpoolmanVendor.self, from: json)
+        let vendor = try JSONDecoder().decode(Vendor.self, from: json)
 
         #expect(vendor.id == 1)
         #expect(vendor.name == "Polymaker")
@@ -21,7 +22,7 @@ struct SpoolmanModelsDecodingTests {
         let json = """
         {"id":11,"name":"PLA Black","vendor":{"id":1,"name":"Polymaker"},"material":"PLA","price":19.99,"density":1.24,"diameter":1.75,"weight":1000.0,"spool_weight":140.0,"article_number":"PM70820","comment":"batch A","settings_extruder_temp":210,"settings_bed_temp":60,"color_hex":"111111","multi_color_hexes":"FF0000,00FF00","multi_color_direction":"coaxial","external_id":"poly_pla_black","extra":{"profile":"\\\"fast\\\""}}
         """.data(using: .utf8)!
-        let filament = try JSONDecoder().decode(SpoolmanFilament.self, from: json)
+        let filament = try JSONDecoder().decode(Filament.self, from: json)
 
         #expect(filament.id == 11)
         #expect(filament.name == "PLA Black")
@@ -48,7 +49,7 @@ struct SpoolmanModelsDecodingTests {
         let json = """
         {"id":42,"filament":{"id":11,"name":"PLA Black","vendor":{"id":1,"name":"Polymaker"},"material":"PLA","density":1.24,"diameter":1.75},"first_used":"2026-01-02T00:00:00Z","last_used":"2026-01-03T00:00:00Z","price":22.5,"initial_weight":1000.0,"spool_weight":140.0,"used_weight":120.0,"remaining_weight":880.0,"location":"Shelf A","lot_nr":"52342","comment":"printer-ready","archived":false,"extra":{"slot":"\\\"A3\\\""}}
         """.data(using: .utf8)!
-        let spool = try JSONDecoder().decode(SpoolmanSpool.self, from: json)
+        let spool = try JSONDecoder().decode(Spool.self, from: json)
 
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
@@ -80,9 +81,24 @@ struct SpoolmanModelsDecodingTests {
         {"id":42,"filament":{"id":11},"first_used":1735776000}
         """.data(using: .utf8)!
 
-        let spool = try JSONDecoder().decode(SpoolmanSpool.self, from: json)
+        let spool = try JSONDecoder().decode(Spool.self, from: json)
 
         #expect(spool.firstUsed == Date(timeIntervalSince1970: 1735776000))
+    }
+
+    /// `purchase_date` is a CALENDAR day, not an instant (unlike `first_used`
+    /// above), so `Spool`'s `Codable` init reads it through
+    /// `CalendarDateCodec` — the same codec `FilaManRepository.mapSpool`
+    /// uses for the identical wire form. Pins the two arrival paths to the
+    /// same output so they cannot drift into the two-codec bug `ddd35d8` fixed.
+    @Test func decodesPurchaseDateAsTheSameCalendarDayMapSpoolWould() throws {
+        let json = """
+        {"id":42,"filament":{"id":11},"purchase_date":"2026-08-28T00:00:00Z"}
+        """.data(using: .utf8)!
+
+        let spool = try JSONDecoder().decode(Spool.self, from: json)
+
+        #expect(spool.purchaseDate == CalendarDateCodec.date(from: "2026-08-28T00:00:00Z"))
     }
 
     @Test func decodesSpoolDateFromFractionalSecondsISO8601() throws {
@@ -90,7 +106,7 @@ struct SpoolmanModelsDecodingTests {
         {"id":42,"filament":{"id":11},"first_used":"2026-01-02T12:34:56.789Z"}
         """.data(using: .utf8)!
 
-        let spool = try JSONDecoder().decode(SpoolmanSpool.self, from: json)
+        let spool = try JSONDecoder().decode(Spool.self, from: json)
 
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -103,13 +119,13 @@ struct SpoolmanModelsDecodingTests {
         """.data(using: .utf8)!
 
         do {
-            _ = try JSONDecoder().decode(SpoolmanSpool.self, from: json)
-            #expect(false, "Expected invalid date string to throw")
+            _ = try JSONDecoder().decode(Spool.self, from: json)
+            #expect(Bool(false), "Expected invalid date string to throw")
         } catch let error as DecodingError {
             if case .dataCorrupted(let context) = error {
                 #expect(context.codingPath.last?.stringValue == "first_used")
             } else {
-                #expect(false, "Expected dataCorrupted, got \(error)")
+                #expect(Bool(false), "Expected dataCorrupted, got \(error)")
             }
         }
     }

@@ -3,59 +3,45 @@ import Testing
 @testable import SpoolKid
 
 struct VendorFormVisibilityTests {
-    @Test func vendorCommentFieldHiddenWhenToggleOff() {
-        let suite = "VendorFormVisibilityTests.hidden"
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
-        defaults.set(false, forKey: AppConfig.visibilityVendorCommentKey)
-
-        let ids = VendorFormView.visibleFieldIDs(store: SpoolmanFieldVisibilityStore(userDefaults: defaults))
+    /// The form helper routes through the support∩preference intersection and
+    /// returns this entity's fields. It asserts the DEFAULT only: the helper
+    /// takes capabilities, not a `UserDefaults`, so a toggle cannot be injected
+    /// here. Toggle behaviour is covered directly, against an injected suite,
+    /// in `FieldVisibilityStoreTests`.
+    @Test func vendorFormHidesCommentByDefault() {
+        let ids = VendorFormView.visibleFieldIDs(for: BackendCapabilities.spoolman)
 
         #expect(!ids.contains("comment"))
     }
 
     @Test func vendorPayloadIncludesOptionalFieldsWhenProvided() {
-        let payload = VendorFormView.vendorPayload(
+        let draft = VendorFormView.vendorDraft(
             name: "Polymaker",
             comment: "Premium brand",
             emptySpoolWeight: "140",
-            externalId: "poly",
-            extraJSON: "{\"origin\":\"catalog\"}"
+            externalId: "poly"
         )
 
-        #expect(payload["name"] as? String == "Polymaker")
-        #expect(payload["comment"] as? String == "Premium brand")
-        #expect(payload["empty_spool_weight"] as? Double == 140)
-        #expect(payload["external_id"] as? String == "poly")
-
-        let extra = payload["extra"] as? [String: String]
-        #expect(extra?["origin"] == "catalog")
+        #expect(draft.name == "Polymaker")
+        #expect(draft.comment == "Premium brand")
+        #expect(draft.emptySpoolWeight == 140)
+        #expect(draft.externalId == "poly")
     }
 
     @Test func vendorPayloadNormalizesWhitespaceAndDecimalComma() {
-        let payload = VendorFormView.vendorPayload(
+        let draft = VendorFormView.vendorDraft(
             name: "  Polymaker  ",
             comment: "  Premium brand  ",
             emptySpoolWeight: "140,5",
-            externalId: "  poly  ",
-            extraJSON: ""
+            externalId: "  poly  "
         )
 
-        #expect(payload["name"] as? String == "Polymaker")
-        #expect(payload["comment"] as? String == "Premium brand")
-        #expect(payload["empty_spool_weight"] as? Double == 140.5)
-        #expect(payload["external_id"] as? String == "poly")
+        #expect(draft.name == "Polymaker")
+        #expect(draft.comment == "Premium brand")
+        #expect(draft.emptySpoolWeight == 140.5)
+        #expect(draft.externalId == "poly")
     }
 
-    @Test func vendorPayloadOmitsInvalidExtraJSON() {
-        let payload = VendorFormView.vendorPayload(
-            name: "Polymaker",
-            comment: "",
-            emptySpoolWeight: "",
-            externalId: "",
-            extraJSON: "{not-valid-json}"
-        )
-
-        #expect(payload["extra"] == nil)
-    }
+    // `vendorPayloadOmitsInvalidExtraJSON` lived here. The Extra JSON box it
+    // tested is gone as of 2026-08-28 (task 4, backend-aware fields).
 }

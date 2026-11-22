@@ -9,7 +9,7 @@
 
 //
 // Copyright (c) 2026 Marko Praprotnik. All rights reserved.
-// Licensed under the MIT License.
+// Licensed under the GNU AGPL v3.0 only; commercial licenses: see COMMERCIAL.md.
 // See LICENSE in the project root for details.
 //
 

@@ -34,9 +34,12 @@ playground.xcworkspace
 
 # End of Xcode.gitignore
 .impeccable.md
+.claude/
 .opencode/
 .planning/
+.ua/
 findings.md
 progress.md
 task_plan.md
-docs/
+## Agent tooling scratch
+.superpowers/

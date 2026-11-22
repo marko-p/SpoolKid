@@ -1,0 +1,337 @@
+[
+  {
+    "name": "PA (Nylon)",
+    "key": "pa (nylon)",
+    "inferredBedTemp": 60
+  },
+  {
+    "name": "BIOFUSION",
+    "key": "biofusion",
+    "inferredBedTemp": 60
+  },
+  {
+    "name": "PLA+/Pro",
+    "key": "pla+/pro",
+    "inferredBedTemp": 50
+  },
+  {
+    "name": "GREENTEC",
+    "key": "greentec",
+    "inferredBedTemp": 90
+  },
+  {
+    "name": "PLA+WOOD",
+    "key": "pla+wood",
+    "inferredBedTemp": 40
+  },
+  {
+    "name": "PETG-CF",
+    "key": "petg-cf",
+    "inferredBedTemp": 75
+  },
+  {
+    "name": "TPU-55D",
+    "key": "tpu-55d",
+    "inferredBedTemp": 60
+  },
+  {
+    "name": "TPU-85A",
+    "key": "tpu-85a",
+    "inferredBedTemp": 30
+  },
+  {
+    "name": "TPU-90A",
+    "key": "tpu-90a",
+    "inferredBedTemp": 30
+  },
+  {
+    "name": "TPU-95A",
+    "key": "tpu-95a",
+    "inferredBedTemp": 60
+  },
+  {
+    "name": "HT-PLA",
+    "key": "ht-pla",
+    "inferredBedTemp": 50
+  },
+  {
+    "name": "ABS-GF",
+    "key": "abs-gf",
+    "inferredBedTemp": 90
+  },
+  {
+    "name": "ASA-CF",
+    "key": "asa-cf",
+    "inferredBedTemp": 100
+  },
+  {
+    "name": "ASA-GF",
+    "key": "asa-gf",
+    "inferredBedTemp": 100
+  },
+  {
+    "name": "PC-ABS",
+    "key": "pc-abs",
+    "inferredBedTemp": 72
+  },
+  {
+    "name": "PA6-GF",
+    "key": "pa6-gf",
+    "inferredBedTemp": 90
+  },
+  {
+    "name": "PLA-CF",
+    "key": "pla-cf",
+    "inferredBedTemp": 45
+  },
+  {
+    "name": "PETG+",
+    "key": "petg+",
+    "inferredBedTemp": 75
+  },
+  {
+    "name": "PA612",
+    "key": "pa612",
+    "inferredBedTemp": 40
+  },
+  {
+    "name": "PC-CF",
+    "key": "pc-cf",
+    "inferredBedTemp": 100
+  },
+  {
+    "name": "PETG",
+    "key": "petg",
+    "inferredBedTemp": 70
+  },
+  {
+    "name": "PCTG",
+    "key": "pctg",
+    "inferredBedTemp": 70
+  },
+  {
+    "name": "PA11",
+    "key": "pa11",
+    "inferredBedTemp": 80
+  },
+  {
+    "name": "PA12",
+    "key": "pa12",
+    "inferredBedTemp": 90
+  },
+  {
+    "name": "PA66",
+    "key": "pa66",
+    "inferredBedTemp": 80
+  },
+  {
+    "name": "HIPS",
+    "key": "hips",
+    "inferredBedTemp": 100
+  },
+  {
+    "name": "PEKK",
+    "key": "pekk",
+    "inferredBedTemp": 75
+  },
+  {
+    "name": "PEEK",
+    "key": "peek",
+    "inferredBedTemp": 100
+  },
+  {
+    "name": "BVOH",
+    "key": "bvoh",
+    "inferredBedTemp": null
+  },
+  {
+    "name": "PPSU",
+    "key": "ppsu",
+    "inferredBedTemp": 82
+  },
+  {
+    "name": "PEBA",
+    "key": "peba",
+    "inferredBedTemp": 60
+  },
+  {
+    "name": "PVDF",
+    "key": "pvdf",
+    "inferredBedTemp": 55
+  },
+  {
+    "name": "PMMA",
+    "key": "pmma",
+    "inferredBedTemp": 100
+  },
+  {
+    "name": "ASA+",
+    "key": "asa+",
+    "inferredBedTemp": 80
+  },
+  {
+    "name": "ABS+",
+    "key": "abs+",
+    "inferredBedTemp": 95
+  },
+  {
+    "name": "APLA",
+    "key": "apla",
+    "inferredBedTemp": 50
+  },
+  {
+    "name": "PAHT",
+    "key": "paht",
+    "inferredBedTemp": 90
+  },
+  {
+    "name": "PLA+",
+    "key": "pla+",
+    "inferredBedTemp": 60
+  },
+  {
+    "name": "PLA",
+    "key": "pla",
+    "inferredBedTemp": 50
+  },
+  {
+    "name": "TPU",
+    "key": "tpu",
+    "inferredBedTemp": 40
+  },
+  {
+    "name": "ABS",
+    "key": "abs",
+    "inferredBedTemp": 90
+  },
+  {
+    "name": "ASA",
+    "key": "asa",
+    "inferredBedTemp": 90
+  },
+  {
+    "name": "PA6",
+    "key": "pa6",
+    "inferredBedTemp": 80
+  },
+  {
+    "name": "CPE",
+    "key": "cpe",
+    "inferredBedTemp": 25
+  },
+  {
+    "name": "TPE",
+    "key": "tpe",
+    "inferredBedTemp": 45
+  },
+  {
+    "name": "PHA",
+    "key": "pha",
+    "inferredBedTemp": 0
+  },
+  {
+    "name": "PET",
+    "key": "pet",
+    "inferredBedTemp": 70
+  },
+  {
+    "name": "PEI",
+    "key": "pei",
+    "inferredBedTemp": 75
+  },
+  {
+    "name": "PBT",
+    "key": "pbt",
+    "inferredBedTemp": 100
+  },
+  {
+    "name": "PVB",
+    "key": "pvb",
+    "inferredBedTemp": 25
+  },
+  {
+    "name": "PVA",
+    "key": "pva",
+    "inferredBedTemp": 35
+  },
+  {
+    "name": "TPC",
+    "key": "tpc",
+    "inferredBedTemp": null
+  },
+  {
+    "name": "PPS",
+    "key": "pps",
+    "inferredBedTemp": 85
+  },
+  {
+    "name": "PVC",
+    "key": "pvc",
+    "inferredBedTemp": null
+  },
+  {
+    "name": "PPA",
+    "key": "ppa",
+    "inferredBedTemp": 80
+  },
+  {
+    "name": "PCL",
+    "key": "pcl",
+    "inferredBedTemp": 100
+  },
+  {
+    "name": "PES",
+    "key": "pes",
+    "inferredBedTemp": 75
+  },
+  {
+    "name": "POM",
+    "key": "pom",
+    "inferredBedTemp": null
+  },
+  {
+    "name": "PPE",
+    "key": "ppe",
+    "inferredBedTemp": 82
+  },
+  {
+    "name": "PSU",
+    "key": "psu",
+    "inferredBedTemp": null
+  },
+  {
+    "name": "TPI",
+    "key": "tpi",
+    "inferredBedTemp": null
+  },
+  {
+    "name": "SBS",
+    "key": "sbs",
+    "inferredBedTemp": null
+  },
+  {
+    "name": "OBC",
+    "key": "obc",
+    "inferredBedTemp": null
+  },
+  {
+    "name": "EVA",
+    "key": "eva",
+    "inferredBedTemp": null
+  },
+  {
+    "name": "PC",
+    "key": "pc",
+    "inferredBedTemp": 90
+  },
+  {
+    "name": "PP",
+    "key": "pp",
+    "inferredBedTemp": 60
+  },
+  {
+    "name": "PS",
+    "key": "ps",
+    "inferredBedTemp": null
+  }
+]

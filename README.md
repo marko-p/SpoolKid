@@ -1,88 +1,107 @@
 # SpoolKid
 
-SpoolKid is an iOS companion app for [Spoolman](https://github.com/Donkie/Spoolman), a self-hosted filament manager for 3D printers. It lets you manage your filament inventory, read and write NFC tags on your spools, scan filament labels with the camera, and keep your physical spools in sync with your Spoolman database.
+SpoolKid is an iOS app that keeps your filament spools, their NFC tags and your 3D printer in sync. Keep your library on the phone, or connect it to your self-hosted [Spoolman](https://github.com/Donkie/Spoolman) or [FilaMan](https://github.com/ManuelW77/Filaman) server. Read and write spool tags in six formats, scan labels with the camera, weigh spools on a Bluetooth scale, and see what each toolhead of your Snapmaker U1 holds.
 
-I originally built this project to simplify my own filament management workflow on the Snapmaker U1 using [paxx's Extended Firmware](https://github.com/paxx12/SnapmakerU1-Extended-Firmware), especially its OpenSpool NFC support. SpoolKid now aims to be compatible with as many NFC tag formats as possible, support other printers as well, and be an excellent [Spoolman](https://github.com/Donkie/Spoolman) management app.
+I started SpoolKid to manage my own Snapmaker U1 filament with [paxx's Extended Firmware](https://github.com/paxx12/SnapmakerU1-Extended-Firmware) and its OpenSpool support. It now aims to work with as many tag formats, backends and printers as possible.
+
+<p align="center">
+  <img src=".github/readme/home.png" width="200" alt="Home dashboard">
+  <img src=".github/readme/printer.png" width="200" alt="Printer tab with the U1's four toolheads">
+  <img src=".github/readme/library.png" width="200" alt="Library grouped by filament">
+</p>
+<p align="center">
+  <img src=".github/readme/spool.png" width="200" alt="Spool page">
+  <img src=".github/readme/writetag.png" width="200" alt="Write Tag with the six formats">
+  <img src=".github/readme/colorfilter.png" width="200" alt="Filter by Color with color harmonies">
+</p>
 
 ## Install
 
-Join the public beta on [TestFlight](https://testflight.apple.com/join/Y4BmejQk). Requires iOS 18 or later, and a device with NFC.
+**TestFlight (recommended):** join the public beta at [testflight.apple.com/join/Y4BmejQk](https://testflight.apple.com/join/Y4BmejQk).
+
+**Build from source** (Xcode 16+, iOS 18.0+, an Apple Developer account):
+
+1. Clone the repository.
+2. Copy `Development.xcconfig.template` to `Development.xcconfig` and set your Team ID.
+3. Open `SpoolKid.xcodeproj` and run on a physical device (NFC and the camera don't work in the Simulator).
 
 ## Features
 
-### NFC tag formats
+### Library and backends
 
-SpoolKid reads and writes NFC tags (NTAG213/215/216) in five formats. Reading auto-detects the format; writing uses whichever format you select.
+- **Three interchangeable backends:** an on-device Library (no server needed), [Spoolman](https://github.com/Donkie/Spoolman), or [FilaMan](https://github.com/ManuelW77/Filaman). Move an on-device library to a server when you're ready.
+- Spools, filaments, manufacturers and locations, grouped by filament, material, manufacturer, location or color family, with search.
+- Read-first spool, filament and manufacturer pages; add spools from the [SpoolmanDB](https://github.com/Donkie/SpoolmanDB) or FilaManDB catalogue, several at once.
+- Multi-color filaments, filament opacity and TD (transmission distance), with a TD1S reader.
+- Empty-spool weights per brand, so a weighed spool knows how much filament is left.
+- Spoolman sign-in with Basic Auth, API key or OpenID Connect.
+
+### NFC tags
+
+Reads and writes NTAG213/215/216 (and ISO 15693 for OpenPrintTag). Reading detects the format; writing uses the one you pick.
 
 | Format | Notes |
 |---|---|
-| **OpenSpool** | JSON-based NDEF. Default format. |
-| **OpenPrintTag** | NDEF with `application/vnd.openprinttag` MIME type. |
-| **OpenTag3D** | NDEF with `application/opentag3d` MIME type. |
-| **Anycubic ACE** | Raw page format (non-NDEF) for ACE Pro spool holder compatibility. |
-| **ELEGOO** | Raw page format for ELEGOO RFID tags. |
+| **OpenSpool** | JSON in NDEF. The default. |
+| **OpenPrintTag** | Prusa's CBOR format on NFC-V tags, including remaining-filament updates. |
+| **OpenTag3D** | NDEF with the `application/opentag3d` MIME type. |
+| **Anycubic ACE** | Raw pages for the ACE Pro spool holder. |
+| **ELEGOO** | Raw pages for ELEGOO RFID tags. |
+| **TigerTag** | TigerTag's binary layout. |
 
-**Note:** I primarily use OpenSpool and OpenPrintTag. If you can test the other formats, please help validate SpoolKid's implementation and share your findings.
+- **One tag, one owner:** link any number of tags to a spool, a filament or a location. Links live in the spool's `card_uids` field (compatible with SpoolLink), in Spoolman's own tags on Spoolman 0.27+, and in FilaMan's `rfid_uid` when you turn that on.
+- Scanning any tag, even an encrypted MIFARE Classic one, finds its spool by the tag's link, by the spool ID on the tag, or by matching the filament data against your library.
+- Clone a tag byte for byte, inspect what's on a tag, and keep recently written tags for quick reuse.
 
-### Scanning
+### Snapmaker U1
 
-Beyond NFC, SpoolKid scans filament labels with the camera in a single session that handles both QR codes and printed text (OCR) — useful for spools that have no tag yet, and for vendor labels and product pages.
+- **Printer tab:** connects over Moonraker (stock firmware, Extended Firmware, Bespok3d) and shows what each of T1–T4 holds, live, and where each value came from.
+- Put a spool into a toolhead by scanning its tag or picking it from the library; SpoolKid flags when the tag, the printer and your library disagree.
+- **Read and write tags at the U1's own RFID readers**\* without holding the phone to the spool.
+- Material and tag values are checked against what the U1 firmware understands.
 
-Every scan, whichever way it arrives, lands in the **Scan Result Hub**, which works out what you scanned: an embedded Spoolman spool ID is used directly, a known tag UID resolves to its spool, and otherwise the filament data on the tag or label is scored against your library and the best candidates are offered for confirmation. From there you can accept the match, pick a different spool, write a new tag, or create the spool.
+\* Needs the [SpoolKid RFID Writer](https://github.com/marko-p/SpoolKid-RFID-Writer) plugin for Bespok3d.
 
-### Spoolman integration
+### Camera and scale
 
-- Browse and manage **spools**, **filaments**, **vendors** and **locations** directly from your Spoolman instance.
-- Import filament definitions from the global [SpoolmanDB](https://github.com/Donkie/SpoolmanDB) catalog, creating the vendor and filament in your Spoolman automatically.
-- Create a spool and write its NFC tag in one step with **Save and Write NFC Tag**.
+- **Label scan:** reads QR codes and filament labels (OCR) and fills in the spool.
+- **Bluetooth scale:** weigh spools one after another and save the remaining weight.
+- **Color capture:** read a filament's color with the camera, optionally against a reference card.
+- **Color Matching:** pick colors from a photo and find your closest spools; Filter by Color offers color harmonies.
 
-### SpoolLink tag mapping
+### Settings
 
-Tag-to-spool mappings are stored in Spoolman's `card_uids` extra field — uppercase hex, comma-separated, with no limit on how many tags a spool can carry. This matches the [Snapmaker U1 Extended Firmware](https://github.com/paxx12/SnapmakerU1-Extended-Firmware) convention, so your printer recognises spools by tag.
+Settings that are part of a workflow live in the app (backend connection, which fields to show, the Home dashboard). Rarely touched utility and recovery switches live in the iOS Settings app (Settings › SpoolKid).
 
-Mappings still stored the old way (`card_uid:` tokens in `lot_nr`) are read as a fallback and migrated the first time SpoolKid encounters them, so nothing needs re-tagging by hand. The whole feature sits behind a **SpoolLink** toggle in the app's Spoolman settings: switching it on provisions the field on your Spoolman instance, switching it off removes it again.
+## Code structure
 
-### Home dashboard
+| Directory | Contents |
+|---|---|
+| `SpoolKid/Models/` | Tag payloads for each format, backend objects, scan results. |
+| `SpoolKid/NFC/` | `NFCManager`: CoreNFC reading and writing. |
+| `SpoolKid/Services/` | Backends (`SpoolDataRepository` and its Local, Spoolman and FilaMan conformers), tag formats, scan resolution, OCR, printer, scale. |
+| `SpoolKid/Views/` | SwiftUI views. |
+| `SpoolKid/Settings.bundle/` | The iOS Settings app page. |
+| `SpoolKidTests/`, `SpoolKidUITests/` | Swift Testing unit tests and XCTest UI tests. |
 
-A read-only inventory overview: spool fill levels bucketed from full to empty, a breakdown by material, how much of your inventory is tagged, which filaments you are likely to run out of soonest, and total inventory value. Every card drills through to the matching filtered spool list.
+SpoolKid uses no third-party libraries.
 
-### Colour filter
+## License
 
-Manage Spools can be filtered by colour using a spectrum map, with harmony modes for finding complements and near-matches rather than only exact ones. Active filters appear as a row of chips above the list, each individually clearable.
+SpoolKid is licensed under the [GNU AGPL v3.0](LICENSE) only. Commercial licenses are available from the author: see [COMMERCIAL.md](COMMERCIAL.md). Contributions need the CLA in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-### Using SpoolKid without a server
-
-SpoolKid works without Spoolman: a small on-device library lets you try the app and manage a handful of spools with no server at all. Connect a Spoolman instance later and SpoolKid offers to migrate what you created on device, letting you resolve any duplicates it finds against what is already on the server.
-
-### Configuration
-
-Settings are split by how you use them. Things that are part of a workflow or need live validation — your Spoolman connection, dashboard layout, which fields appear on forms — live **in the app**. Rarely touched utility and recovery toggles — recent-tags limit, diagnostics, reset all data — live in the **iOS Settings app** under Settings › SpoolKid.
-
-## Bugs and feature requests
-
-[Open an issue](https://github.com/marko-p/SpoolKid/issues) — this is the right place for both, and I read every one. Bug reports are most useful with your iOS version, the tag format involved, and whether you are connected to Spoolman.
+Versions up to 0.9 were released under the MIT License. That source is still available at the [`v0.9`](https://github.com/marko-p/SpoolKid/tree/v0.9) tag.
 
 ## Support the project
 
-SpoolKid is free to use, and keeping it running has real costs — subscriptions and services, an Apple Developer account, test hardware, and the tags themselves. If SpoolKid saves you time at the bench, a contribution helps keep it going.
+SpoolKid is free, but keeping it running has recurring costs. If it saves you time, please consider helping cover them.
 
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub-%23EA4AAA?logo=github)](https://github.com/sponsors/marko-p)
 [![Ko-fi](https://img.shields.io/badge/Donate-Ko--fi-%23FF5E5B?logo=ko-fi)](https://ko-fi.com/spoolkid)
 
-Thank you!
-
-## Source availability
-
-The code in this repository is the v0.9 snapshot from May 2026. It stays here, and it stays MIT-licensed — that doesn't change, and anyone who wants to fork it, learn from it, or build it still can.
-
-Development has continued privately since then. Publishing a codebase is its own ongoing commitment — keeping it reviewable, explaining decisions, keeping it in a state someone else could pick up — and SpoolKid outgrew what I can carry alongside actually building the app. So new work isn't published here.
-
-What hasn't changed: SpoolKid is still actively developed, still free to everyone on TestFlight, and this issue tracker is still the right place for bugs and feature requests. I read every one.
-
-**Building the snapshot:** Xcode 16+, iOS 18+, an Apple Developer account. Copy `Development.xcconfig.template` to `Development.xcconfig`, set your Team ID, open `SpoolKid.xcodeproj`, and run on a physical device — NFC does not work in the Simulator.
-
 ## Acknowledgments
 
 - [Lucio](https://github.com/unlucio/) for testing, feedback, and pushing the Snapmaker U1 community toward Spoolman integration.
-- [Donkie](https://github.com/Donkie) for creating Spoolman and SpoolmanDB.
+- [Donkie](https://github.com/Donkie) for Spoolman and SpoolmanDB.
+- [ManuelW77](https://github.com/ManuelW77) for FilaMan and its filament database.
 - [paxx12](https://github.com/paxx12) for the Snapmaker U1 Extended Firmware, which inspired this project.

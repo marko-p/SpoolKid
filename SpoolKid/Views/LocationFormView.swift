@@ -7,7 +7,7 @@
 
 //
 // Copyright (c) 2026 Marko Praprotnik. All rights reserved.
-// Licensed under the MIT License.
+// Licensed under the GNU AGPL v3.0 only; commercial licenses: see COMMERCIAL.md.
 // See LICENSE in the project root for details.
 //
 
@@ -15,18 +15,21 @@ import SwiftUI
 
 struct LocationFormView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.serverLink) private var serverLink
 
-    @ObservedObject var service: SpoolmanService
-    let baseUrl: String
+    @ObservedObject var store: SpoolDataStore
     let currentLocation: String
     var onRenamed: ((String) -> Void)? = nil
 
+    @AppStorage(AppConfig.confirmBeforeDeleteKey) private var confirmBeforeDelete = true
     @State private var newLocationName: String = ""
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var deleteErrorMessage: String?
 
     var body: some View {
         Form {
+            ServerDownFormNote()
             Section("Current") {
                 Text(currentLocation)
             }
@@ -34,8 +37,29 @@ struct LocationFormView: View {
             Section("Rename") {
                 TextField("New location name", text: $newLocationName)
             }
+
+            Section {
+                DestructiveFormButton(
+                    title: "Delete Location",
+                    confirmTitle: "Delete Location?",
+                    confirmMessage: "\(currentLocation) will be permanently deleted from \(store.capabilities.storageNoun).",
+                    confirmBeforeDelete: confirmBeforeDelete
+                ) {
+                    Task {
+                        let deleted = await store.deleteLocation(currentLocation)
+                        let outcome = SaveOutcome.classify(
+                            didSave: deleted,
+                            message: store.errorMessage,
+                            failureFallback: "The location could not be deleted."
+                        )
+                        if outcome.didWrite { dismiss() } else { deleteErrorMessage = outcome.failure }
+                    }
+                }
+            }
+            .needsServer()
         }
-        .hideKeyboardOnTap()
+        .keyboardDoneBar()
+        .selectsTextOnFocus()
         .navigationTitle("Rename Location")
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -47,6 +71,7 @@ struct LocationFormView: View {
                     saveRename()
                 }
                 .disabled(isSaveDisabled)
+                .needsServer()
             }
         }
         .alert(
@@ -59,6 +84,17 @@ struct LocationFormView: View {
             Button("OK", role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "Unknown error")
+        }
+        .alert(
+            "Could Not Delete Location",
+            isPresented: Binding(
+                get: { deleteErrorMessage != nil },
+                set: { if !$0 { deleteErrorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { deleteErrorMessage = nil }
+        } message: {
+            Text(deleteErrorMessage ?? "Unknown error")
         }
         .onAppear {
             newLocationName = currentLocation
@@ -78,19 +114,17 @@ struct LocationFormView: View {
             isSaving = true
             defer { isSaving = false }
 
-            let success = await service.renameLocation(
-                currentName: currentLocation,
-                newName: trimmed,
-                baseUrl: baseUrl
-            )
+            let written = await serverLink.outcome {
+                await store.renameLocation(currentName: currentLocation, newName: trimmed)
+            }
 
-            if success {
+            if case .saved = written {
                 onRenamed?(trimmed)
                 dismiss()
                 return
             }
 
-            errorMessage = service.errorMessage ?? "The location could not be renamed."
+            errorMessage = SaveNote.failure(written, otherwise: store.errorMessage ?? "The location could not be renamed.")
         }
     }
 }
